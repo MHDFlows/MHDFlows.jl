@@ -1,6 +1,7 @@
 module integrator
 
-include("Solver.jl")
+include("MHDSolver.jl")
+include("HDSolver.jl")
 
 using
   CUDA,

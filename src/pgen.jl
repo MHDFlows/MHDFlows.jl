@@ -10,7 +10,8 @@ using
 
 @reexport using FourierFlows
 
-include("Solver.jl")
+include("MHDSolver.jl")
+include("HDSolver.jl")
 include("datastructure.jl")
 
 export MHDProblem,
@@ -22,7 +23,9 @@ export MHDProblem,
 MHDParams  = datastructure.MHDParams;
 HDParams   = datastructure.HDParams;
 SetMHDVars = datastructure.SetMHDVars;
+SetHDVars  = datastructure.SetHDVars;
 MHDcalcN_advection!  = MHDSolver.MHDcalcN_advection!;
+HDcalcN_advection!   = HDSolver.HDcalcN_advection!;
 
 nothingfunction(args...) = nothing;
 
@@ -102,7 +105,6 @@ end
 
 
 """
-**Under constrcution right now, not in use**
 function HDProblem(dev::Device=CPU();
   # Numerical parameters
                 nx = 64,
@@ -141,7 +143,6 @@ Keyword arguments
   - `T`: `Float32` or `Float64`; floating point type used for `problem` data.
 """
 
-
 function HDProblem(dev::Device=CPU();
   # Numerical parameters
                 nx = 64,
@@ -153,7 +154,6 @@ function HDProblem(dev::Device=CPU();
    # Drag and/or hyper-viscosity for velocity
                  ν = 0,
                 nν = 1,
-                 μ = 0,
    # force function 
                 calcF = nothingfunction,
   # Timestepper and equation options
@@ -164,11 +164,11 @@ function HDProblem(dev::Device=CPU();
 
   grid = ThreeDGrid(dev, nx, Lx, ny, Ly, nz, Lz; T=T)
 
-  params = HDParams{T}(ν, η, nν, 1, 2, 3, 4, 5, 6)
+  params = HDParams{T}(ν, nν, 1, 2, 3, calcF)
 
   vars = SetHDVars(dev, grid);
 
-  equation = Equation_with_forcing(dev, params, grid)
+  equation = Equation_with_forcing(dev,params, grid)
 
   return FourierFlows.Problem(equation, stepper, dt, grid, vars, params, dev)
 end
@@ -202,10 +202,11 @@ function Equation_with_forcing(dev,params::MHDParams, grid::AbstractGrid)
 end
 
 function Equation_with_forcing(dev,params::HDParams, grid::AbstractGrid)
+  
   T = eltype(grid)
   L = zeros(dev, T, (grid.nkr,grid.nm,grid.nk, 6));
     
-  return FourierFlows.Equation(L,MHDcalcN!, grid)
+  return FourierFlows.Equation(L,HDcalcN!, grid)
 end
 
 function addforcing!(N, sol, t, clock, vars, params, grid)

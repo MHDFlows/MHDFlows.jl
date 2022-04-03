@@ -130,6 +130,9 @@ struct HDParams{T} <: AbstractParams
    ux_ind :: Int
    uy_ind :: Int
    uz_ind :: Int
+
+  "function that calculates the Fourier transform of the forcing, ``F̂``"
+    calcF! :: Function
     
 end
 
