@@ -1,11 +1,12 @@
 # MHDFlows.jl
+![Julia flow](img/TG_Instability.gif)
 
 Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in julia language with <a href="http://github.com/FourierFlows/FourierFlows.jl">FourierFlows.jl</a>. 
 
 This package leaverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up a module in order to solve the small 3D incompessbile MHD problems in periodic domains using pesudespectral method. Feel free to modify yourself for your own research purpose.
 
 ## Version No.
-Beta 1.0
+Beta 2.0
 
 ## Installation Guide & compatibility 
 Currently, you can only download and bluid it yourself. A Julia's built-in package manager installation will be avaibile after the stable release update.
