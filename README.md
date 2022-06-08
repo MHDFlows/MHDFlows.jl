@@ -36,7 +36,7 @@ For GPU users, here are some useful numbers of memory requirement for choosing t
 
 **Speed**
 
-The following table provides the reference of the runtime for 1 iteration for pure HD/MHD computation.
+The following table provides the reference of the runtime for 1 iteration in pure HD/MHD computation.
 
 Method : compute the mean time of 20 iteration using RK4 method
 
