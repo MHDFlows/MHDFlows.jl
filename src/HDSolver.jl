@@ -1,5 +1,9 @@
 module HDSolver
 
+# ----------
+# Navier–Stokes Solver for 3D Hydrodynamics Problem
+# ----------
+
 export 
 	UᵢUpdate!,
 	HDcalcN_advection!,
@@ -61,7 +65,6 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
 
           # Initialization 
           @. vars.nonlin1 *= 0;
-          @. vars.nonlin2 *= 0;
           uᵢuⱼ  = vars.nonlin1;    
           uᵢuⱼh = vars.nonlinh1;
           

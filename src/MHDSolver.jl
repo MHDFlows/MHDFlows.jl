@@ -1,4 +1,7 @@
 module MHDSolver
+# ----------
+# Navier–Stokes Solver for 3D Magnetohydrodynamics Problem
+# ----------
 
 export 
 	UᵢUpdate!,
@@ -59,24 +62,27 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   for (bᵢ,uᵢ,kᵢ) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m])
         for (bⱼ,uⱼ,kⱼ,j) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m],[1, 2, 3])
 
-          # Initialization 
-          @. vars.nonlin1 *= 0;
-          @. vars.nonlin2 *= 0;
-          uᵢuⱼ  = vars.nonlin1;    
-          bᵢbⱼ  = vars.nonlin2; 
+          #We split the computation into two parts to save memory
+          @. vars.nonlin1  *= 0;
+          @. vars.nonlinh1 *= 0;
+          uᵢuⱼ  = vars.nonlin1;  
           uᵢuⱼh = vars.nonlinh1;
-          bᵢbⱼh = vars.nonlinh2;
-          
-          # Pre-Calculation in Real Space
           @. uᵢuⱼ = uᵢ*uⱼ;
-          @. bᵢbⱼ = bᵢ*bⱼ;;
-
-          # Fourier transform 
           mul!(uᵢuⱼh, grid.rfftplan, uᵢuⱼ);
+
+          # Perform the actual calculation
+          @. ∂uᵢh∂t += -im*kᵢ*(δ(a,j)-kₐ*kⱼ*k⁻²)*uᵢuⱼh;
+
+
+          @. vars.nonlin1  *= 0;
+          @. vars.nonlinh1 *= 0;
+          bᵢbⱼ  = vars.nonlin1; 
+          bᵢbⱼh = vars.nonlinh1;
+          @. bᵢbⱼ = bᵢ*bⱼ;;
           mul!(bᵢbⱼh, grid.rfftplan, bᵢbⱼ);
           
           # Perform the actual calculation
-          @. ∂uᵢh∂t += -im*kᵢ*(δ(a,j)-kₐ*kⱼ*k⁻²)*(uᵢuⱼh-bᵢbⱼh);
+          @. ∂uᵢh∂t += im*kᵢ*(δ(a,j)-kₐ*kⱼ*k⁻²)*bᵢbⱼh;
             
         end
     end
@@ -92,7 +98,7 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
 
 	#To Update B_i, we have two terms to compute:
 	# ∂B_i/∂t = im ∑_j k_j*(b_iu_j - u_ib_j)  - η k^2 B_i
-	#We split two terms for sparating the computation.
+	#We split it into two part for sparating the computation.
 
   # declare the var u_i, b_i for computation
 	if direction == "x"
@@ -128,21 +134,24 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     for (bⱼ,uⱼ,kⱼ) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m])
 
         # Initialization 
-        @. vars.nonlin1 *= 0;
-        @. vars.nonlin2 *= 0;
-        uᵢbⱼ  = vars.nonlin1;    
-        bᵢuⱼ  = vars.nonlin2; 
+        @. vars.nonlin1  *= 0;
+        @. vars.nonlinh1 *= 0;
+        uᵢbⱼ  = vars.nonlin1;        
         uᵢbⱼh = vars.nonlinh1;
-        bᵢuⱼh = vars.nonlinh2;
-        
-        # Pre-Calculation in Real Space
+        # Perform Computation in Real space
         @. uᵢbⱼ = uᵢ*bⱼ;
-        @. bᵢuⱼ = bᵢ*uⱼ;
-        # Fourier transform back to spectral space
         mul!(uᵢbⱼh, grid.rfftplan, uᵢbⱼ);
-        mul!(bᵢuⱼh, grid.rfftplan, bᵢuⱼ);
+        # Actual Advection
+        @. ∂Bᵢh∂t += im*kⱼ*uᵢbⱼh;
         
-        @. ∂Bᵢh∂t += -im*kⱼ*(bᵢuⱼh - uᵢbⱼh);
+        @. vars.nonlin1  *= 0;
+        @. vars.nonlinh1 *= 0;    
+        bᵢuⱼ  = vars.nonlin1; 
+        bᵢuⱼh = vars.nonlinh1;
+        @. bᵢuⱼ = bᵢ*uⱼ;
+        mul!(bᵢuⱼh, grid.rfftplan, bᵢuⱼ);
+        @. ∂Bᵢh∂t += -im*kⱼ*bᵢuⱼh;
+
     end
     
     #Compute the diffusion term  - ηk^2 B_i
@@ -164,12 +173,12 @@ function MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   @. vars.bzh = sol[:, :, :, params.bz_ind];
 
   #Update V + B Real Conponment
-  ldiv!(vars.ux, grid.rfftplan, vars.uxh)
-  ldiv!(vars.uy, grid.rfftplan, vars.uyh)
-  ldiv!(vars.uz, grid.rfftplan, vars.uzh)
-  ldiv!(vars.bx, grid.rfftplan, vars.bxh)
-  ldiv!(vars.by, grid.rfftplan, vars.byh)
-  ldiv!(vars.bz, grid.rfftplan, vars.bzh)  
+  ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh))
+  ldiv!(vars.uy, grid.rfftplan, deepcopy(vars.uyh))
+  ldiv!(vars.uz, grid.rfftplan, deepcopy(vars.uzh))
+  ldiv!(vars.bx, grid.rfftplan, deepcopy(vars.bxh))
+  ldiv!(vars.by, grid.rfftplan, deepcopy(vars.byh))
+  ldiv!(vars.bz, grid.rfftplan, deepcopy(vars.bzh))  
   
   #Update V Advection
   UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
