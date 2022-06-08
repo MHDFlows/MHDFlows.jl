@@ -27,7 +27,7 @@ The MHD Solver could either run on CPU or GPU. The scalability is same as Fourie
 
 **Memory usage**
 
-For GPU users, here are useful numbers of memory requirement for choosing the resolution of the simulation. You may end up getting higher resolution for the same memory.
+For GPU users, here are some useful numbers of memory requirement for choosing the resolution of the simulation. You may end up getting higher resolution for the same memory.
 
 | Memory Size | Maximum Resolution ($N^3$ )    |
 | ----------- | ------------------------------ |
@@ -40,7 +40,7 @@ The following table provides the reference of the runtime for 1 iteration for pu
 
 Method : compute the mean time of 20 iteration using RK4 method
 
-Environment: WSL2 in Win11 (Ubuntu 18.04 LTS) using 
+Environment: WSL2 in Win11 (Ubuntu 18.04 LTS) ( in jupyter-lab)
 
 **HD** (Taylor Green Vortex)
 
