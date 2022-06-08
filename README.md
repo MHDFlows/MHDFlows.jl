@@ -8,7 +8,7 @@ Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Jul
 3. incompressible  HD/MHD simulation with volume penalization method (Public version not released yet)
 4. Passive Dye Tracer (Experimental Feature)
 
-This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set u a module in order to solve the portable 3D incompressible MHD problems in periodic domains using pseudo-spectral method. Feel free to modify yourself for your own research purpose.
+This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up a module in order to solve the portable 3D incompressible MHD problems in periodic domains using pseudo-spectral method. Feel free to modify yourself for your own research purpose.
 
 ## Version No.
 Beta 3.0
