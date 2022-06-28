@@ -31,16 +31,16 @@ For GPU users, here are some useful numbers of memory requirement for choosing t
 
 | Memory Size | Maximum Resolution ($N^3$ )    |
 | ----------- | ------------------------------ |
-| 6 GB        | $256^3 $ (pure HD simulation)  |
-| 10 GB       | $300^3 $ (pure MHD simulation) |
+| 6 GB        | $256^3$ (pure HD simulation)  |
+| 10 GB       | $300^3$ (pure MHD simulation) |
 
 **Speed**
 
-The following table provides the reference of the runtime for 1 iteration in pure HD/MHD computation.
+The following table provides the reference of the runtime for 1 iteration in pure HD/MHD computation. As the benchmarks are running on the WSL2, the runtime could varies and does not reflect the best performance.
 
-Method : compute the mean time of 20 iteration using RK4 method
+Method: compute the mean time of 20 iterations using RK4 method
 
-Environment: WSL2 in Win11 (Ubuntu 18.04 LTS) ( in jupyter-lab)
+Environment: WSL2 in Win11 (Ubuntu 18.04 LTS) (in jupyter-lab)
 
 **HD** (Taylor Green Vortex)
 
@@ -63,4 +63,4 @@ Few examples were set up to illustrate the workflow of using this package. See `
 MHDFlows is developed by [Ka Wai HO@UW-Madison Astronomy](https://scholar.google.com/citations?user=h2j8wbYAAAAJ&hl=en).
 
 ## Citing
-A paper can be cited elsewhere in the future : ). Feel free to cite the GitHub page right now. 
+A paper can be cited elsewhere in the future :slightly_smiling_face:. Feel free to cite the GitHub page right now. 
