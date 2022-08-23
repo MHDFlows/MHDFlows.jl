@@ -3,25 +3,36 @@
 
 Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Julia language with <a href="http://github.com/FourierFlows/FourierFlows.jl">FourierFlows.jl</a>. This solver support the following features:
 
-1. 2D incompressible  HD/MHD simulation (periodic boundary)
-2. 3D incompressible  HD/MHD simulation (periodic boundary)
-3. incompressible  HD/MHD simulation with volume penalization method (Public version not released yet)
+1. 2D incompressible HD/MHD simulation (periodic boundary)
+2. 3D incompressible HD/MHD simulation (periodic boundary)
+3. Incompressible  HD/MHD simulation with volume penalization method
 4. Passive Dye Tracer (Experimental Feature)
 
-This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up a module in order to solve the portable 3D incompressible MHD problems in periodic domains using pseudo-spectral method. Feel free to modify yourself for your own research purpose.
+This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up the module. The main purpose of MHDFlows.jl aims to solve the portable 3D MHD problems on personal computer instead of cluster. Utilizing the Nvidia CUDA technology, the MHDFlows.jl could solve the front-end MHD turbulence problem in the order of few-ten minutes by using a mid to high end gaming display card (see Memory usage & speed section). Feel free to modify yourself for your own research purpose.
 
 ## Version No.
-Beta 3.0
+v 0.1.0
 
 ## Installation Guide & compatibility 
-Currently, you can only download and build it yourself. A Julia's built-in package manager installation will be available after the stable release update.
-
 The current version is tested on v1.5.3/1.7.3/1.8 version.
+
+Currently, you have two way of installing MHDFlows.jl
+
+1. Download and build it yourself from here. 
+
+2. Julia's built-in package manager installation (accessed by pressing `]` in the Julia REPL command prompt)
+
+   ```julia
+   julia>
+   (v1.7) pkg> add MHDFlows
+   ```
+
+
 
 ## Scalability 
 The MHD Solver could either run on CPU or GPU. The scalability is same as Fourierflows, which is restricted to either a single CPU or single GPU. This restriction may change in the future depending on the development of FourierFlows. If you are running the package using GPU, the CUDA package is needed for the computation. Check out [CUDA.jl](https://juliagpu.github.io/CUDA.jl/stable/lib/driver/#Device-Management) for more detail. 
 
-**Important note**: As this is a 3D solver, the memory usage and computational time scale as `N^3`. Beware of the memory usage especially when you are using the GPU. 
+**Important note**: As this is a 3D solver, the memory usage and computational time scale as `N^3` (at least). Beware of the memory usage especially when you are using the GPU. 
 
 ## Memory usage & speed
 
@@ -40,7 +51,7 @@ The following table provides the reference of the runtime for 1 iteration in pur
 
 Method: compute the mean time of 20 iterations using RK4 method
 
-Environment: WSL2 in Win11 (Ubuntu 18.04 LTS on jupyter-lab)
+Environment: WSL2 in Win11 (Ubuntu 18.04 LTS through jupyter-lab)
 
 **HD** (Taylor Green Vortex)
 
