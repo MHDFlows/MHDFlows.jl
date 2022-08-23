@@ -86,10 +86,6 @@ function Problem(dev::Device;
         usr_params = [],
           usr_func = [])
 
-  if (VP_method) 
-    error("VP Method is not implemented in this version!")
-  end
-
   # Declare the grid
   grid = ThreeDGrid(dev, nx, Lx, ny, Ly, nz, Lz; T=T)
 

@@ -96,6 +96,7 @@ function increment!(diag)
 end
 
 function increment!(diags::AbstractVector)
+  
   for diag in diags
     increment!(diag)
   end

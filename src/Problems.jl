@@ -140,12 +140,12 @@ end
 
 show(io::IO, problem::MHDFlowsProblem) =
     print(io, "MHDFlows Problem\n",
-    	      "  │    Funtions\n",
-    		  "  │     ├──────── B-field: "*CheckON(problem.flag.b),'\n',
-    		  "  ├─────├────── VP Method: "*CheckON(problem.flag.vp),'\n',
-    		  "  │     ├──────────── Dye: "*CheckDye(problem.dye),'\n',
-    		  "  │     └── user function: "*CheckFunction(problem.usr_func),'\n',
-    		  "  │                        ",'\n',
+    	        "  │    Funtions\n",
+    		      "  │     ├──────── B-field: "*CheckON(problem.flag.b),'\n',
+    		      "  ├─────├────── VP Method: "*CheckON(problem.flag.vp),'\n',
+    		      "  │     ├──────────── Dye: "*CheckDye(problem.dye),'\n',
+    		      "  │     └── user function: "*CheckFunction(problem.usr_func),'\n',
+    		      "  │                        ",'\n',
               "  │     Features           ",'\n',  
               "  │     ├─────────── grid: grid (on " * FourierFlows.griddevice(problem.grid) * ")", '\n',
               "  │     ├───── parameters: params", '\n',
