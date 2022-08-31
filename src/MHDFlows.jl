@@ -6,7 +6,8 @@ using
   SpecialFunctions,
   Reexport,
   DocStringExtensions,
-  HDF5
+  HDF5,
+  FFTW
 
 @reexport using FourierFlows
 
