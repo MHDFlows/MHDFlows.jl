@@ -1,6 +1,8 @@
 # ----------
 # MHD Analysis Method, providing MHD related quantities function 
 # ----------
+include("utils.jl")
+
 
 # Scale Decomposition FUnction
 function ScaleDecomposition(B1::Array;kf=[1,5],Lx = 2π,T=Float32)
@@ -179,9 +181,9 @@ end
 function spectralline(A::Array{T,3};Lx=2π) where T
   nx,ny,nz = size(A);
   Ak = zeros(Complex{T},div(nx,2)+1,ny,nz);
-  grid = ThreeDGrid(CPU(),nx,Lx;T=T);
-  mul!(Ak,grid.rfftplan,A);
-  kk    = @. √(grid.Krsq);
+  k²,rfftplan = Getk²_and_fftplan(nx,Lx;T=T);
+  mul!(Ak,rfftplan,A);
+  kk    = @. √(k²::Array{T,3});
   krmax = round(Int,maximum(kk)+1);
   Pk = zeros(T,(krmax));
   kr = zeros(T,(krmax));
