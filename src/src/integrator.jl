@@ -40,9 +40,6 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
     file_number+=1;
   end
   
-  # Declare the vars update function and CFL time calclator
-  updatevars! = ifelse(prob.flag.b, MHDSolver.MHDupdatevars!,
-                                     HDSolver.HDupdatevars!);
   if CFL_function == nothingfunction
     updateCFL!  = getCFL!;
   else
@@ -127,8 +124,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   Total_Update_per_second = prob.clock.step* Ntotal/time;
   print("Total CPU/GPU time run = $(round(time,digits=3)) s," 
         *" zone update per second = $(round(Total_Update_per_second,digits=3)) \n");
-
-
+  return nothing;
 end
 
 function getCFL!(prob, t_diff; Coef = 0.3);
