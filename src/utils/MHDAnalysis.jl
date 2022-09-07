@@ -3,11 +3,10 @@
 # ----------
 include("utils.jl")
 
-
 # Scale Decomposition FUnction
 function ScaleDecomposition(B1::Array;kf=[1,5],Lx = 2π,T=Float32)
   nx,ny,nz = size(B1);
-  grid = ThreeDGrid(nx, Lx, T = T);
+  grid = GetSimpleThreeDGrid(nx, Lx, T = T);
   cB1  = ScaleDecomposition(B1,grid;kf=kf)
   return cB1;
 end
@@ -38,7 +37,7 @@ end
 
 function ScaleDecomposition(B1::Array,B2::Array,B3::Array;kf=[1,5],Lx = 2π,T=Float32)
   nx,ny,nz = size(B1);
-  grid = ThreeDGrid(nx, Lx, T = T);
+  grid = GetSimpleThreeDGrid(nx, Lx, T = T);
 
   cB1,cB2,cB3 = ScaleDecomposition(B1,B2,B3,grid;kf=kf)
   return cB1,cB2,cB3;
@@ -94,7 +93,7 @@ end
 function VectorPotential(B1::Array{T,3},B2::Array{T,3},B3::Array{T,3};L=2π) where T
   # Wrapper of actual Vector Potential function
   nx,ny,nz = size(B1);
-  grid = ThreeDGrid(nx, L, T = T);
+  grid = GetSimpleGetSimpleThreeDGrid(nx, L; T = T);
   A1,A2,A3 = VectorPotential(B1,B2,B3,grid);
   return A1,A2,A3;
 end
@@ -140,7 +139,7 @@ end
 #Checking for anagular momentum using center point as a reference (r = 0 at the center)
 function getL(iv::Array{T,3},jv::Array{T,3},kv::Array{T,3};L=2π) where T
   nx,ny,nz = size(iv);
-  grid = ThreeDGrid(nx, L, T = T);
+  grid = GetSimpleThreeDGrid(nx, L, T = T);
   Lᵢ,Lⱼ,Lₖ  = getL(iv,jv,kv,grid)
   return Lᵢ,Lⱼ,Lₖ    
 end 
@@ -181,7 +180,8 @@ end
 function spectralline(A::Array{T,3};Lx=2π) where T
   nx,ny,nz = size(A);
   Ak = zeros(Complex{T},div(nx,2)+1,ny,nz);
-  k²,rfftplan = Getk²_and_fftplan(nx,Lx;T=T);
+  grid = GetSimpleGetSimpleThreeDGrid(nx,Lx;T=T);
+  k²,rfftplan = grid.Krsq,grid.rfftplan;
   mul!(Ak,rfftplan,A);
   kk    = @. √(k²::Array{T,3});
   krmax = round(Int,maximum(kk)+1);

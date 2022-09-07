@@ -6,7 +6,7 @@ function Curl(B1::Array,B2::Array,B3::Array;
               Lx = 2π, Ly = Lx, Lz = Lx,T = Float32)
     # Wrapper for Curl Function
     nx,ny,nz = size(B1);
-    grid = ThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
+    grid = GetSimpleThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
     cB1,cB2,cB3 = Curl(B1,B2,B3,grid)
     return cB1,cB2,cB3;
 end
@@ -43,7 +43,7 @@ end
 function Div(B1::Array,B2::Array,B3::Array;
              Lx = 2π, Ly = Lx, Lz = Lx,T = Float32)
     nx,ny,nz = size(B1);
-    grid = ThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
+    grid = GetSimpleGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
     cB1 = Div(B1,B2,B3,grid);
 
     return cB1
@@ -76,7 +76,7 @@ end
 function ∂i(B1::Array, direction; Lx = 2π, Ly = Lx, Lz = Lx,T = eltype(B1))
   nx,ny,nz = size(B1);
   dev = typeof(B1) <: Array ? CPU() : GPU();
-  grid = ThreeDGrid(dev, nx, Lx, ny, Ly, nz, Lz, T = T);
+  grid = GetSimpleThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
   return ∂i(B1,grid, direction);
 end
 
@@ -114,7 +114,7 @@ end
 
 function LaplaceSolver(B; Lx=2π, Ly = Lx, Lz = Lx, T = Float32)
     nx,ny,nz = size(B);
-    grid = ThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
+    grid = GetSimpleThreeDGrid(nx, Lx, ny, Ly, nz, Lz, T = T);
     Φ   = LaplaceSolver(B,grid);
     return Φ
 end
