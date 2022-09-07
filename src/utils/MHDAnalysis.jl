@@ -93,7 +93,7 @@ end
 function VectorPotential(B1::Array{T,3},B2::Array{T,3},B3::Array{T,3};L=2π) where T
   # Wrapper of actual Vector Potential function
   nx,ny,nz = size(B1);
-  grid = GetSimpleGetSimpleThreeDGrid(nx, L; T = T);
+  grid = GetSimpleThreeDGrid(nx, L; T = T);
   A1,A2,A3 = VectorPotential(B1,B2,B3,grid);
   return A1,A2,A3;
 end
@@ -180,7 +180,7 @@ end
 function spectralline(A::Array{T,3};Lx=2π) where T
   nx,ny,nz = size(A);
   Ak = zeros(Complex{T},div(nx,2)+1,ny,nz);
-  grid = GetSimpleGetSimpleThreeDGrid(nx,Lx;T=T);
+  grid = GetSimpleThreeDGrid(nx,Lx;T=T);
   k²,rfftplan = grid.Krsq,grid.rfftplan;
   mul!(Ak,rfftplan,A);
   kk    = @. √(k²::Array{T,3});
