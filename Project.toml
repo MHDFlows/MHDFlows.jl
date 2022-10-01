@@ -1,7 +1,7 @@
 name = "MHDFlows"
 uuid = "1d939cba-ab73-4bc0-975c-87d4c856e1f9"
 authors = ["Ka Wai HO <woodyho13@gmail.com> "]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
