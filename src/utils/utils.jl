@@ -35,5 +35,5 @@ function GetSimpleThreeDGrid( nx = 64, Lx = 2π, ny = nx, Ly = Lx, nz = nx, Lz =
   FFTW.set_num_threads(nthreads);
   rfftplan = plan_rfft(ArrayType{T, 3}(undef, nx, ny, nz))
   
-    return SimpleGrid(k,l,m,kr,Ksq, invKsq, Krsq, invKrsq, rfftplan);
+  return SimpleGrid(k,l,m,kr,Ksq, invKsq, Krsq, invKrsq, rfftplan);
 end

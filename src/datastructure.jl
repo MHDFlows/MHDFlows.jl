@@ -71,6 +71,8 @@ struct MHDParams_VP{Aphys,usr_param} <: AbstractParams
     η :: Number
   "(hyper)-viscosity order, `nν```≥ 1``"
     nν :: Int
+  "(hyper)-resisivity order, `nη```≥ 1``"
+    nη :: Int
 
   "Array Indexing for velocity"
     ux_ind :: Int
@@ -152,7 +154,9 @@ struct MHDParams{usr_param} <: AbstractParams
     η :: Number
   "(hyper)-viscosity order, `nν```≥ 1``"
     nν :: Int
-
+  "(hyper)-resisivity order, `nη```≥ 1``"
+    nη :: Int
+    
   "Array Indexing for velocity"
     ux_ind :: Int
     uy_ind :: Int
@@ -200,15 +204,15 @@ function SetVars(dev, grid, usr_vars; B = false, VP = false)
 end
 
  function SetParams(::Dev, grid::AbstractGrid, calcF::Function, usr_params;
-                     B = false, VP = false, ν = 0, η = 0, nν = 0) where Dev
+                     B = false, VP = false, ν = 0, η = 0, nν = 0, nη = 0) where Dev
   T = eltype(grid);
   usr_param = typeof(usr_params);
   if (B)
     if (VP)
       @devzeros Dev T (grid.nx, grid.ny, grid.nz) χ U₀x U₀y U₀z B₀x B₀y B₀z
-      params = MHDParams_VP(ν, η, nν, 1, 2, 3, 4, 5, 6, calcF, χ, U₀x, U₀y, U₀z, B₀x, B₀y, B₀z, usr_params)
+      params = MHDParams_VP(ν, η, nν, nη, 1, 2, 3, 4, 5, 6, calcF, χ, U₀x, U₀y, U₀z, B₀x, B₀y, B₀z, usr_params)
     else
-      params = MHDParams(ν, η, nν, 1, 2, 3, 4, 5, 6, calcF, usr_params);
+      params = MHDParams(ν, η, nν, nη, 1, 2, 3, 4, 5, 6, calcF, usr_params);
     end
   else
     if (VP)

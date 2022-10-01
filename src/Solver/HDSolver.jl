@@ -81,6 +81,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     
     #Compute the diffusion term  - νk^2 u_i
     @. ∂uᵢh∂t += -grid.Krsq*params.ν*uᵢh;
+
+    # hyperdiffusion term
+    if params.nν > 1
+      @. ∂uᵢh∂t += -grid.Krsq^params.nν*params.ν*uᵢh;
+    end
+
     return nothing
     
 end
