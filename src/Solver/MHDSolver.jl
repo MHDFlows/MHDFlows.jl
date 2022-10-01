@@ -79,6 +79,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     
     #Compute the diffusion term  - νk^2 u_i
     @. ∂uᵢh∂t += -grid.Krsq*params.ν*uᵢh;
+    
+    #=# hyperdiffusion term
+    if params.nν > 1
+      @. ∂uᵢh∂t += -grid.Krsq^params.nν*params.ν*uᵢh;
+    end=#
+
     return nothing
     
 end
@@ -138,12 +144,19 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     
     #Compute the diffusion term  - ηk^2 B_i
     @. ∂Bᵢh∂t += -grid.Krsq*params.η*bᵢh;
+
+    # hyperdiffusion term
+    if params.nη > 1
+      @. ∂Bᵢh∂t += -grid.Krsq^params.nη*params.η*bᵢh;
+    end
     
     return nothing
 
 end
 
 function MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
+
+  dealias!(sol, grid);
 
   #Update V + B Fourier Conponment
   copyto!(vars.uxh, @view sol[:, :, :, params.ux_ind]);
@@ -178,7 +191,7 @@ end
 function MHDupdatevars!(prob)
   vars, grid, sol, params = prob.vars, prob.grid, prob.sol, prob.params
   
-  dealias!(sol, grid)
+  dealias!(sol, grid);
   
   #Update V + B Fourier Conponment
   copyto!(vars.uxh, @view sol[:, :, :, params.ux_ind]);
@@ -188,7 +201,6 @@ function MHDupdatevars!(prob)
   copyto!(vars.bxh, @view sol[:, :, :, params.bx_ind]);
   copyto!(vars.byh, @view sol[:, :, :, params.by_ind]);
   copyto!(vars.bzh, @view sol[:, :, :, params.bz_ind]);
-
 
   #Update V + B Real Conponment
   ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh)) # deepcopy() since inverse real-fft destroys its input

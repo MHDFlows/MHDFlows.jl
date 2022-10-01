@@ -43,7 +43,7 @@ function ScaleDecomposition(B1::Array,B2::Array,B3::Array;kf=[1,5],Lx = 2π,T=Fl
   return cB1,cB2,cB3;
 end
 
-function ScaleDecomposition(B1::Array,B2::Array,B3::Array,grid;kf=[1,5])
+function ScaleDecomposition(B1,B2,B3,grid;kf=[1,5])
   k1,k2 = minimum(kf),maximum(kf);
   nx,ny,nz = size(B1);
   dev = typeof(B1) <: Array ? CPU() : GPU();
@@ -69,7 +69,6 @@ function ScaleDecomposition(B1::Array,B2::Array,B3::Array,grid;kf=[1,5])
   ldiv!(cB2, grid.rfftplan,B2h);  
   ldiv!(cB3, grid.rfftplan,B3h);
   return cB1,cB2,cB3;
-
 end
 
 #Kenitic Helicity
@@ -85,8 +84,8 @@ end
 #Megnetic Helicity
 function h_m(ib::Array{T,3},jb::Array{T,3},kb::Array{T,3}) where T
   # A ⋅ B 
-   Ax,Ay,Az = VectorPotential(ib,jb,kb);
-   return Ax::Array{T,3}.*ib .+ Ay::Array{T,3}.*jb .+ Az::Array{T,3}.*kb;
+  Ax,Ay,Az = VectorPotential(ib,jb,kb);
+  return Ax::Array{T,3}.*ib .+ Ay::Array{T,3}.*jb .+ Az::Array{T,3}.*kb;
 end
 
 #Vector Potential

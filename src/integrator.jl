@@ -29,7 +29,6 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
                                      filename = "",
                                   file_number = 0,
                                       dump_dt = 0)
-
     
   # Check if save function related parameter
   if (save)
@@ -41,9 +40,6 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
     file_number+=1;
   end
   
-  # Declare the vars update function and CFL time calclator
-  updatevars! = ifelse(prob.flag.b, MHDSolver.MHDupdatevars!,
-                                     HDSolver.HDupdatevars!);
   if CFL_function == nothingfunction
     updateCFL!  = getCFL!;
   else
@@ -53,14 +49,16 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   # Declare the timescale for diffusion
   if prob.flag.b
     vi = maximum([prob.params.ν,prob.params.η]);
+    nv = maximum([prob.params.nν,prob.params.nη]);
   else
     vi = prob.params.ν;
+    nv = prob.params.nν
   end
   dx = prob.grid.Lx/prob.grid.nx;
   dy = prob.grid.Ly/prob.grid.ny;
   dz = prob.grid.Lz/prob.grid.nz;
   dl = minimum([dx,dy,dz]);
-  t_diff = CFL_Coef*dl^2/vi;
+  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(2*nv)/vi,CFL_Coef*dl^2/vi);
 
   # Declare the iterator paramters
   t_next_save = prob.clock.t + dump_dt;
@@ -79,26 +77,25 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   end
 
   time = @elapsed begin
-    while (N₀ >= prob.clock.step ) && (t₀ >= prob.clock.t)   
-
-      #update the vars
-      updatevars!(prob);
+    while (N₀ >= prob.clock.step ) && (t₀ >= prob.clock.t)  
 
       if (!usr_declared_dt)
-          #update the CFL condition;
-          updateCFL!(prob, t_diff; Coef = CFL_Coef);
+        #update the CFL condition;
+        updateCFL!(prob, t_diff; Coef = CFL_Coef);
       end
 
       #update the system; 
       stepforward!(prob.sol, prob.clock, prob.timestepper, prob.eqn, 
                    prob.vars, prob.params, prob.grid);
 
+      # dealias
+      dealias!(prob.sol, prob.grid);
+
       #update the diags
       increment!(diags)
 
-      #Corret v and b if VP method is turned on
+      #Corret b if VP method is turned on
       if (prob.flag.vp == true)
-        #MHDSolver_VP.DivVCorrection!(prob);
         prob.flag.b == true ? MHDSolver_VP.DivBCorrection!(prob) : nothing;
       end
 
@@ -130,8 +127,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   Total_Update_per_second = prob.clock.step* Ntotal/time;
   print("Total CPU/GPU time run = $(round(time,digits=3)) s," 
         *" zone update per second = $(round(Total_Update_per_second,digits=3)) \n");
-
-
+  return nothing;
 end
 
 function getCFL!(prob, t_diff; Coef = 0.3);
