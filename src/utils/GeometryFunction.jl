@@ -16,7 +16,7 @@ function xy_to_polar(ux::Array,uy::Array;Lx=2π,Ly=Lx,T=Float32)
   # xyz Coordinetes -> rθz Coordinates
   nx,ny,nz = size(ux);  
   dev = CPU();
-  grid = TwoDGrid(dev, nx, Lx, ny, Ly; T=T)
+  grid = TwoDGrid(dev; nx = nx, Lx = Lx, ny = ny, Ly = Ly, T=T)
   Ur,Uθ = xy_to_polar(ux,uy,grid);
   return Ur,Uθ;
 end

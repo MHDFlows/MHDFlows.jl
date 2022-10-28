@@ -1,9 +1,19 @@
 # ----------
 # MHD Analysis Method, providing MHD related quantities function 
 # ----------
-include("utils.jl")
 
-# Scale Decomposition FUnction
+
+"""
+Funtion of decomposing the fluctuation into different scale using the fourier method
+The function will return the array containing fluctuation scale between kf[1] and kf[2]
+Warning : For Periodic Maps Only
+  Keyword arguments
+=================
+- `B1/B2/B3`: 3D physical quantites array 
+- `kf` : Scale of sparation from kf[1] to kf[2] (T type: Array)
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function ScaleDecomposition(B1::Array;kf=[1,5],Lx = 2π,T=Float32)
   nx,ny,nz = size(B1);
   grid = GetSimpleThreeDGrid(nx, Lx, T = T);
@@ -68,27 +78,51 @@ function ScaleDecomposition(B1,B2,B3,grid;kf=[1,5])
   ldiv!(cB1, grid.rfftplan,B1h);
   ldiv!(cB2, grid.rfftplan,B2h);  
   ldiv!(cB3, grid.rfftplan,B3h);
-  return cB1,cB2,cB3;
+  return cB1,cB2,cB3;  
 end
 
-#Kenitic Helicity
+"""
+Funtion of computing kenitic helicity hₖ using the fourier method
+Warning : For Periodic Maps Only
+  Keyword arguments
+=================
+- `iv/jv/kv`: 3D i/j/k velocity field array 
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function h_k(iv::Array{T,3},jv::Array{T,3},kv::Array{T,3};L=2π) where T
   # V ⋅ ( ∇ × V )
   dlx,dly,dlz  = (L/size(iv)[1]),(L/size(iv)[2]),(L/size(iv)[3]);
   dV = dlx*dly*dlz;
   cV1,cV2,cV3 = Curl(iv,jv,kv;Lx=L);
   h_k = @. (cV1::Array{T,3}*iv + cV2::Array{T,3}*jv + cV3::Array{T,3}*kv)*dV
-  return h_k
+  return h_k  
 end
 
-#Megnetic Helicity
+"""
+Funtion of computing magnetic helicity hₘ using the fourier method
+Warning : For Periodic Maps Only and we are assuming the Coulomb gauge ∇ ⋅ A = 0
+  Keyword arguments
+=================
+- `ib/jb/kb`: 3D i/j/k magnetic field array 
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function h_m(ib::Array{T,3},jb::Array{T,3},kb::Array{T,3}) where T
   # A ⋅ B 
   Ax,Ay,Az = VectorPotential(ib,jb,kb);
   return Ax::Array{T,3}.*ib .+ Ay::Array{T,3}.*jb .+ Az::Array{T,3}.*kb;
 end
 
-#Vector Potential
+"""
+Funtion of computing B = ∇ × A using the fourier method
+Warning : We are assuming the Coulomb gauge ∇ ⋅ A = 0
+  Keyword arguments
+=================
+- `B1/B2/B3`: 3D i/j/k magnetic field array 
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function VectorPotential(B1::Array{T,3},B2::Array{T,3},B3::Array{T,3};L=2π) where T
   # Wrapper of actual Vector Potential function
   nx,ny,nz = size(B1);
@@ -96,6 +130,7 @@ function VectorPotential(B1::Array{T,3},B2::Array{T,3},B3::Array{T,3};L=2π) whe
   A1,A2,A3 = VectorPotential(B1,B2,B3,grid);
   return A1,A2,A3;
 end
+
 
 function VectorPotential(B1,B2,B3,grid)
 #=   
@@ -135,7 +170,16 @@ function VectorPotential(B1,B2,B3,grid)
   return A1,A2,A3;
 end
 
-#Checking for anagular momentum using center point as a reference (r = 0 at the center)
+"""
+Function of computing anagular momentum L for cylindrical coordinates.
+Defined direction : x/y radial dimension, z vertical dimension
+Warning : using center point as a reference (r = 0 at the center)
+  Keyword arguments
+=================
+- `iv/jv/kv`: 3D i/j/k velocity array 
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function getL(iv::Array{T,3},jv::Array{T,3},kv::Array{T,3};L=2π) where T
   nx,ny,nz = size(iv);
   grid = GetSimpleThreeDGrid(nx, L, T = T);
@@ -143,7 +187,7 @@ function getL(iv::Array{T,3},jv::Array{T,3},kv::Array{T,3};L=2π) where T
   return Lᵢ,Lⱼ,Lₖ    
 end 
 
-# Getting the anagular momentum L for cylindrical coordinates
+
 function getL(iv,jv,kv,grid)
   # L = r × p => (rᵢ,rⱼ,0) × (iv,jv,kv)
   # |  i  j  k |
@@ -156,7 +200,16 @@ function getL(iv,jv,kv,grid)
   return Li,Lj,Lk    
 end 
 
-# spectral line function for getting the spectrum
+
+"""
+Function of computing 2D/3D Spectra
+Warning : For Periodic Maps Only
+  Keyword arguments
+=================
+- `A`: 2D/3D Array 
+- `Lx` : Maximum Length Scale for the box(T type: Int)
+$(TYPEDFIELDS)
+"""
 function spectralline(A::Array{T,2};Lx=2π) where T
   nx,ny = size(A);
   Ak = zeros(Complex{T},div(nx,2)+1,ny);
