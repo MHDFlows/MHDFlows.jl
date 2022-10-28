@@ -3,7 +3,6 @@
 # ----------
 
 mutable struct A99_vars{Atrans,T}
-  A   :: T
   b   :: T
   Fk  :: Atrans
   e1x :: Atrans
@@ -17,11 +16,10 @@ end
 
 function GetA99vars_And_function(::Dev, nx::Int,ny::Int,nz::Int; T = Float32) where Dev
 
-  A = convert(T,1.0);
   b = convert(T,1.0);
   @devzeros Dev Complex{T} ( div(nx,2) + 1 , ny, nz) Fk e1x e1y e2x e2y e2z gi eⁱᶿ
     
-  return  A99_vars(A,b,Fk,e1x,e1y,e2x,e2y,e2z,gi,eⁱᶿ), A99ForceDriving!;  
+  return  A99_vars(b,Fk,e1x,e1y,e2x,e2y,e2z,gi,eⁱᶿ), A99ForceDriving!;  
 end
 
 function A99ForceDriving!(N, sol, t, clock, vars, params, grid)
@@ -29,7 +27,6 @@ function A99ForceDriving!(N, sol, t, clock, vars, params, grid)
   # A99 Force
   randN = typeof(N) <: Array ? Base.rand : CUDA.rand;
   T  = eltype(grid);
-  A  = vars.usr_vars.A::T;
   b  = vars.usr_vars.b::T;
   Fk = vars.usr_vars.Fk; 
   e1x, e1y = vars.usr_vars.e1x,vars.usr_vars.e1y;
@@ -41,15 +38,15 @@ function A99ForceDriving!(N, sol, t, clock, vars, params, grid)
   eⁱᶿ .= exp.(im.*randN(T,grid.nkr,grid.nl,grid.nm)*2π);
   Φ   .= randN(Complex{T},grid.nkr,grid.nl,grid.nm).*π;
   @. gi  = -tanh(b*(Φ - π/2))/tanh(b*π/2);
-  @. N[:,:,:,params.ux_ind] += A*Fk*eⁱᶿ*gi*e1x;
-  @. N[:,:,:,params.uy_ind] += A*Fk*eⁱᶿ*gi*e1y;
+  @. N[:,:,:,params.ux_ind] += Fk*eⁱᶿ*gi*e1x;
+  @. N[:,:,:,params.uy_ind] += Fk*eⁱᶿ*gi*e1y;
     
   # Work out the seond conponement
   eⁱᶿ .= exp.(im.*randN(T,grid.nkr,grid.nl,grid.nm)*2π);
-  @. gi  = √(1 - gi.^2); 
-  @. N[:,:,:,params.ux_ind] += A*Fk*eⁱᶿ*gi*e2x;
-  @. N[:,:,:,params.uy_ind] += A*Fk*eⁱᶿ*gi*e2y;
-  @. N[:,:,:,params.uz_ind] += A*Fk*eⁱᶿ*gi*e2z;
+  @. gi  = √(1 - gi^2); 
+  @. N[:,:,:,params.ux_ind] += Fk*eⁱᶿ*gi*e2x;
+  @. N[:,:,:,params.uy_ind] += Fk*eⁱᶿ*gi*e2y;
+  @. N[:,:,:,params.uz_ind] += Fk*eⁱᶿ*gi*e2z;
 
   return nothing
 end

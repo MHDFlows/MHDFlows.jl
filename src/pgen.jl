@@ -87,7 +87,7 @@ function Problem(dev::Device;
           usr_func = [])
 
   # Declare the grid
-  grid = ThreeDGrid(dev; nx=nx, Lx=Lx, ny = ny, Ly = Ly, nz = nz, Lz = Lz, T=T)
+  grid = ThreeDGrid(dev, nx, Lx, ny, Ly, nz, Lz; T=T)
 
   # Declare vars
   vars = SetVars(dev, grid, usr_vars; B = B_field, VP =VP_method);
@@ -126,8 +126,6 @@ function MHDcalcN!(N, sol, t, clock, vars, params, grid)
   MHDSolver.MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end
@@ -138,8 +136,6 @@ function HDcalcN!(N, sol, t, clock, vars, params, grid)
   HDSolver.HDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end
@@ -150,8 +146,6 @@ function MHDcalcN_VP!(N, sol, t, clock, vars, params, grid)
   MHDSolver_VP.MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end
@@ -162,8 +156,6 @@ function HDcalcN_VP!(N, sol, t, clock, vars, params, grid)
   HDSolver_VP.HDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end

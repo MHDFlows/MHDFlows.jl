@@ -3,11 +3,11 @@ module MHDFlows
 using 
   CUDA,
   Statistics,
+  SpecialFunctions,
   Reexport,
   DocStringExtensions,
   HDF5,
-  FFTW,
-  ProgressMeter
+  FFTW
 
 @reexport using FourierFlows
 
@@ -28,12 +28,10 @@ include("Solver/MHDSolver_VP.jl")
 include("DiagnosticWrapper.jl")
 include("integrator.jl")
 include("datastructure.jl")
-include("utils/utils.jl");
 include("utils/VectorCalculus.jl")
 include("utils/MHDAnalysis.jl")
 include("utils/GeometryFunction.jl")
 include("utils/IC.jl")
-include("utils/UserInterface.jl")
 
 
 #pgen module

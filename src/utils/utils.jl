@@ -11,9 +11,9 @@ mutable struct SimpleGrid{i,i²,plan}
 end
 Base.eltype(grid::SimpleGrid) = eltype(grid.k);
 
-function GetSimpleThreeDGrid(nx = 64, Lx = 2π, ny = nx, Ly = Lx, nz = nx, Lz = Lx;
-                             nthreads=Sys.CPU_THREADS, effort=FFTW.MEASURE,
-                             T=Float64, ArrayType=Array)
+function GetSimpleThreeDGrid( nx = 64, Lx = 2π, ny = nx, Ly = Lx, nz = nx, Lz = Lx;
+                        nthreads=Sys.CPU_THREADS, effort=FFTW.MEASURE,
+                        T=Float64, ArrayType=Array)
   nk = nx
   nl = ny
   nm = nz
@@ -26,11 +26,11 @@ function GetSimpleThreeDGrid(nx = 64, Lx = 2π, ny = nx, Ly = Lx, nz = nx, Lz = 
 
      Ksq = @. k^2 + l^2 + m^2
   invKsq = @. 1 / Ksq
-  CUDA.@allowscalar  invKsq[1, 1, 1] = 0;
+  invKsq[1, 1, 1] = 0;
 
      Krsq = @. kr^2 + l^2 + m^2
   invKrsq = @. 1 / Krsq
-  CUDA.@allowscalar invKrsq[1, 1, 1] = 0;
+  invKrsq[1, 1, 1] = 0;
     
   FFTW.set_num_threads(nthreads);
   rfftplan = plan_rfft(ArrayType{T, 3}(undef, nx, ny, nz))

@@ -34,6 +34,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀x;
     uᵢ   = vars.ux;
+  	uᵢh  = vars.uxh;
   	∂uᵢh∂t = @view N[:,:,:,params.ux_ind];
 
   elseif direction == "y"
@@ -43,6 +44,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀y;
     uᵢ   = vars.uy;
+  	uᵢh  = vars.uyh;
   	∂uᵢh∂t = @view N[:,:,:,params.uy_ind];
 
   elseif direction == "z"
@@ -52,11 +54,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀z;
     uᵢ   = vars.uz;
+  	uᵢh  = vars.uzh;
   	∂uᵢh∂t = @view N[:,:,:,params.uz_ind];
 
   else
 
-  	error("Warning : Unknown direction is declerad")
+  	@warn "Warning : Unknown direction is declerad"
 
   end
 
@@ -95,9 +98,6 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     end
 
     #Compute the diffusion term  - νk^2 u_i
-    uᵢ = direction == "x" ? vars.ux : direction == "y" ? vars.uy : vars.uz;
-    uᵢh = vars.nonlinh1;
-    mul!(uᵢh, grid.rfftplan, uᵢ); 
     @. ∂uᵢh∂t += -grid.Krsq*params.ν*uᵢh;
 
     # hyperdiffusion term
@@ -123,6 +123,7 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     B₀  = params.B₀x;
 		uᵢ  = vars.ux;
 		bᵢ  = vars.bx; 
+		bᵢh = vars.bxh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.bx_ind];
 
 	elseif direction == "y"
@@ -132,6 +133,7 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     B₀  = params.B₀y;
 		uᵢ  = vars.uy;
 		bᵢ  = vars.by; 
+		bᵢh = vars.byh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.by_ind];
 
 	elseif direction == "z"
@@ -141,6 +143,7 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     B₀  = params.B₀z;
 		uᵢ  = vars.uz;
 		bᵢ  = vars.bz; 
+		bᵢh = vars.bzh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.bz_ind];
 
 	else
@@ -184,8 +187,6 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     end
 
     #Compute the diffusion term  - ηk^2 B_i
-    bᵢh = vars.nonlinh1;
-    mul!(bᵢh, grid.rfftplan, bᵢ); 
     @. ∂Bᵢh∂t += -grid.Krsq*params.η*bᵢh;
     
     # hyperdiffusion term
@@ -199,23 +200,32 @@ end
 
 function MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
 
+  #Update V + B Fourier Conponment
+  @. vars.uxh = sol[:, :, :, params.ux_ind];
+  @. vars.uyh = sol[:, :, :, params.uy_ind];
+  @. vars.uzh = sol[:, :, :, params.uz_ind];
+    
+  @. vars.bxh = sol[:, :, :, params.bx_ind];
+  @. vars.byh = sol[:, :, :, params.by_ind];
+  @. vars.bzh = sol[:, :, :, params.bz_ind];
+
   #Update V + B Real Conponment
-  ldiv!(vars.ux, grid.rfftplan, deepcopy(@view sol[:, :, :, params.ux_ind]));
-  ldiv!(vars.uy, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uy_ind]));
-  ldiv!(vars.uz, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uz_ind]));
-  ldiv!(vars.bx, grid.rfftplan, deepcopy(@view sol[:, :, :, params.bx_ind]));
-  ldiv!(vars.by, grid.rfftplan, deepcopy(@view sol[:, :, :, params.by_ind]));
-  ldiv!(vars.bz, grid.rfftplan, deepcopy(@view sol[:, :, :, params.bz_ind])); 
+  ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh))
+  ldiv!(vars.uy, grid.rfftplan, deepcopy(vars.uyh))
+  ldiv!(vars.uz, grid.rfftplan, deepcopy(vars.uzh))
+  ldiv!(vars.bx, grid.rfftplan, deepcopy(vars.bxh))
+  ldiv!(vars.by, grid.rfftplan, deepcopy(vars.byh))
+  ldiv!(vars.bz, grid.rfftplan, deepcopy(vars.bzh))  
   
   #Update V Advection
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x");
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y");
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z");
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y")
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z")
   
   #Update B Advection
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x");
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y");
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z"); 
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y")
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z")  
   
   return nothing
 end
@@ -250,9 +260,9 @@ function DivBCorrection!(prob)
   ∑ᵢkᵢBᵢh_k² = @. ∑ᵢkᵢBᵢh_k²*k⁻²;  # Φₖ
   
   # B  = B* - ∇Φ = Bᵢ - kᵢΦₖ  
-  @. bxh  -= kᵢ.*∑ᵢkᵢBᵢh_k²;
-  @. byh  -= kⱼ.*∑ᵢkᵢBᵢh_k²;
-  @. bzh  -= kₖ.*∑ᵢkᵢBᵢh_k²;
+  bxh  .-= kᵢ.*∑ᵢkᵢBᵢh_k²;
+  byh  .-= kⱼ.*∑ᵢkᵢBᵢh_k²;
+  bzh  .-= kₖ.*∑ᵢkᵢBᵢh_k²;
   
   #Update to Real Space vars
   ldiv!(vars.bx, grid.rfftplan, deepcopy(bxh));# deepcopy() since inverse real-fft destroys its input
