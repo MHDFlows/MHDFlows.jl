@@ -1,7 +1,6 @@
 # ----------
 # General Function Module, providing function for setup IC of the problem
 # ----------
-include("utils.jl")
 
 """
 Construct a Cylindrical Mask Function χ for VP method
@@ -25,6 +24,7 @@ function Cylindrical_Mask_Function(grid;R₂=0.82π,R₁=0.0π)
   end    
   return S
 end
+
 """
 function of setting up the initial condition of the problem
   Keyword arguments
@@ -81,7 +81,7 @@ end
 
 
 """
-Construct a Div Free Spectra Vector Map
+Construct a Div Free Spectra Vector Map with power-law relation
   Keyword arguments
 =================
 - `Nx/Ny/Nz`: size of the Vector Map
@@ -90,8 +90,10 @@ Construct a Div Free Spectra Vector Map
 $(TYPEDFIELDS)
 """
 function DivFreeSpectraMap( Nx::Int, Ny::Int, Nz::Int;
+                            Lx = 2π,
+                            dev = CPU(), 
                             P = 1, k0 = -5/3/2, b = 1, T = Float64)
-  grid = GetSimpleThreeDGrid(Nx,Ny,Nz, T = T)
+  grid = ThreeDGrid(dev; nx = Nx, Lx = Lx, ny=Ny, nz=Nz, T = T);
   return DivFreeSpectraMap( grid; P = P, k0 = k0, b = b);
 end
 
@@ -99,10 +101,10 @@ function DivFreeSpectraMap( grid;
                             P = 1, k0 = -5/3/2, b = 1)
     
   T = eltype(grid);  
-  @devzeros typeof(CPU()) Complex{T} (grid.nkr,grid.nl,grid.nm) eⁱᶿ Fk Fxh Fyh Fzh 
-  @devzeros typeof(CPU())         T  (grid.nx ,grid.ny,grid.nz) Fx Fy Fz
+  @devzeros typeof(grid.device) Complex{T} (grid.nkr,grid.nl,grid.nm) eⁱᶿ Fk Fxh Fyh Fzh 
+  @devzeros typeof(grid.device)         T  (grid.nx ,grid.ny,grid.nz) Fx Fy Fz
   
-  kx,ky,kz = grid.kr,grid.l,grid.m;  
+  kx,ky,kz  = grid.kr,grid.l,grid.m;  
   Lx,Ly,Lz  = grid.Lx,grid.Ly,grid.Lz;
   dx,dy,dz  = grid.dx,grid.dy,grid.dz;
   k⁻¹  = @. √(grid.invKrsq);
@@ -110,8 +112,8 @@ function DivFreeSpectraMap( grid;
   k⊥   = @. √(kx^2 + ky^2);
   dk⁻² = @. 1/(k+1)^2;
   Fk   = @. k.^(k0);
-  Fk[1,1,1] = 0.0;
-#  Fk[k.>5] .= 0;
+  CUDA.@allowscalar Fk[1,1,1] = 0.0;
+
   ∫Fkdk  = sum(@. Fk*dk⁻²);
   A   = sqrt(P*3*(Lx/dx)*(Ly/dy)*(Lz/dz)/∫Fkdk*(1/dx/dy/dz));
   Fk*=A;
@@ -127,13 +129,20 @@ function DivFreeSpectraMap( grid;
   e2y[isnan.(e2y)] .= 0;
     
   # Work out the random conponement 
-  eⁱᶿ .= exp.(im.*rand(T,grid.nkr,grid.nl,grid.nm)*2π);
+  randN = grid.device == CPU() ? rand : CUDA.rand;
+  eⁱᶿ .= exp.(im.*randN(T,grid.nkr,grid.nl,grid.nm)*2π);
   @. Fxh += Fk*eⁱᶿ*e2x;
   @. Fyh += Fk*eⁱᶿ*e2y;
   @. Fzh += Fk*eⁱᶿ*e2z;
+  
+  dealias!(Fxh, grid)
+  dealias!(Fyh, grid)
+  dealias!(Fzh, grid)
+
   ldiv!(Fx, grid.rfftplan, deepcopy(Fxh));  
   ldiv!(Fy, grid.rfftplan, deepcopy(Fyh));
   ldiv!(Fz, grid.rfftplan, deepcopy(Fzh));
+
   return Fx,Fy,Fz;
   
 end

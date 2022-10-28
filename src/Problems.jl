@@ -124,11 +124,12 @@ function MHDFLowsProblem(eqn::FourierFlows.Equation, stepper, dt, grid::Abstract
                  vars=EmptyVars, params=EmptyParams, dev::Device=CPU(); 
                  BFlag = false, VPFlag = false, DyeFlag = false, usr_func = [],
                  stepperkwargs...) where T
+
   clock = FourierFlows.Clock{T}(dt, 0, 0)
 
   timestepper = FourierFlows.TimeStepper(stepper, eqn, dt, dev);
 
-  sol = FourierFlows.devzeros(dev, eqn.T, eqn.dims);
+  sol = zeros(dev, eqn.T, eqn.dims);
 
   flag = Flag(BFlag, VPFlag);
 
@@ -147,7 +148,7 @@ show(io::IO, problem::MHDFlowsProblem) =
     		      "  │     └── user function: "*CheckFunction(problem.usr_func),'\n',
     		      "  │                        ",'\n',
               "  │     Features           ",'\n',  
-              "  │     ├─────────── grid: grid (on " * FourierFlows.griddevice(problem.grid) * ")", '\n',
+              "  │     ├─────────── grid: grid (on " * string(typeof(problem.grid.device)) * ")", '\n',
               "  │     ├───── parameters: params", '\n',
               "  │     ├────── variables: vars", '\n',
               "  └─────├─── state vector: sol", '\n',
