@@ -2,8 +2,6 @@
 # Time Integrator Function for MHDFlows
 # ----------
 
-
-
 """
 Time Integrator for MHDFlows problem 
   Keyword arguments
@@ -23,6 +21,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
                                      CFL_Coef = 0.25,
                                  CFL_function = nothingfunction,
                                         diags = [],
+                          dynamical_dashboard = true,
                                   loop_number = 100,
                                          save = false,
                                      save_loc = "",
@@ -58,7 +57,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   dy = prob.grid.Ly/prob.grid.ny;
   dz = prob.grid.Lz/prob.grid.nz;
   dl = minimum([dx,dy,dz]);
-  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(2*nv)/vi,CFL_Coef*dl^2/vi);
+  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(2)/vi,CFL_Coef*dl^2/vi);
 
   # Declare the iterator paramters
   t_next_save = prob.clock.t + dump_dt;
@@ -76,6 +75,19 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
     prob.flag.b == true ? MHDSolver_VP.DivBCorrection!(prob) : nothing;
   end
 
+  # Print the wellcome message
+  WellcomeMessage()
+
+  # check if user enable the dynamical dashboard
+  if dynamical_dashboard 
+    prog = Progress(N₀; desc = "Simulation in rogress :", 
+                        barglyphs=BarGlyphs('|','█', ['▁' ,'▂' ,'▃' ,'▄' ,'▅' ,'▆', '▇'],' ','|',),
+                        barlen=10, showspeed=true)
+  else
+    prog = nothing;
+  end
+
+  # Actual Computation Start
   time = @elapsed begin
     while (N₀ >= prob.clock.step ) && (t₀ >= prob.clock.t)  
 
@@ -92,7 +104,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
       dealias!(prob.sol, prob.grid);
 
       #update the diags
-      increment!(diags)
+      increment!(diags);
 
       #Corret b if VP method is turned on
       if (prob.flag.vp == true)
@@ -109,18 +121,17 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
           
       #Save Section   
       if (save) && prob.clock.t >= t_next_save;
-        KE_ = ProbDiagnostic(prob, prob.clock.step; print_ = false);
-        isnan(KE_) ? error("detected NaN! Quit the simulation right now.") : nothing;
+        ProbDiagnostic(prob);
         savefile(prob, file_number; file_path_and_name = file_path_and_name)
         t_next_save += dump_dt;
         file_number +=1;
       end
 
-      if prob.clock.step % loop_number == 0
-          KE_ = ProbDiagnostic(prob, prob.clock.step; print_ = true);
-          isnan(KE_) ? error("detected NaN! Quit the simulation right now.") : nothing;
-      end
+      # Update the dashboard information to user
+      dynamical_dashboard ? Dynamical_dashboard(prob,prog, N₀,t₀) : 
+                            Static_Dashbroad(prob,prob.clock.step% loop_number);
     end
+
   end
 
   Ntotal = prob.grid.nx*prob.grid.ny*prob.grid.nz;
@@ -128,7 +139,9 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   print("Total CPU/GPU time run = $(round(time,digits=3)) s," 
         *" zone update per second = $(round(Total_Update_per_second,digits=3)) \n");
   return nothing;
+
 end
+
 
 function getCFL!(prob, t_diff; Coef = 0.3);
   #Solving the dt of CFL condition using dt = Coef*dx/v
@@ -166,35 +179,6 @@ function CFL_Init(CFL_function::Function,usr_dt::Number)
   end
 end
 
-function ProbDiagnostic(prob,N; print_=false)
-  dx,dy,dz = diff(prob.grid.x)[1],diff(prob.grid.y)[1],diff(prob.grid.z)[1];
-  dV = dx*dy*dz;
-  vx,vy,vz = prob.vars.ux,prob.vars.uy,prob.vars.uz;
-  if prob.flag.vp
-      χ  = prob.params.χ;  
-      KE =  string(round(sum(vx[χ.==0].^2+vy[χ.==0].^2 + vz[χ.==0].^2)*dV,sigdigits=3));
-  else
-      KE =  string(round(sum(vx.^2+vy.^2 + vz.^2)*dV,sigdigits=3));
-  end
-  
-  tt =  string(round(prob.clock.t,sigdigits=3));
-  nn = string(N);
-  for i = 1:8-length(string(tt));tt= " "*tt;end
-  for i = 1:8-length(string(KE));KE= " "*KE;end
-  for i = 1:8-length(string(nn));nn= " "*nn;end
-
-  if (prob.flag.b == true)
-      bx,by,bz = prob.vars.bx,prob.vars.by,prob.vars.bz;
-      ME =  string(round(sum(bx.^2+by.^2 + bz.^2)*dV,sigdigits=3));
-      for i = 1:8-length(string(ME));ME= " "*ME;end
-      print_ == true ? println("n = $nn, t = $tt, KE = $KE, ME= $ME") : nothing;   
-  else
-      print_ == true ? println("n = $nn, t = $tt, KE = $KE") : nothing;  
-  end
-
-    return parse(Float32,KE)
-end
-
 function Restart!(prob,file_path_and_name)
   f = h5open(file_path_and_name,"r");
   ux = read(f,"i_velocity");
@@ -211,9 +195,6 @@ function Restart!(prob,file_path_and_name)
   mul!(uxh, prob.grid.rfftplan, prob.vars.ux);   
   mul!(uyh, prob.grid.rfftplan, prob.vars.uy);
   mul!(uzh, prob.grid.rfftplan, prob.vars.uz);
-  copyto!(prob.vars.uxh, deepcopy(uxh));
-  copyto!(prob.vars.uyh, deepcopy(uyh));
-  copyto!(prob.vars.uzh, deepcopy(uzh));
 
   #Update B Conponment
   if prob.flag.b == true
@@ -230,9 +211,6 @@ function Restart!(prob,file_path_and_name)
     mul!(bxh, prob.grid.rfftplan, prob.vars.bx);   
     mul!(byh, prob.grid.rfftplan, prob.vars.by);
     mul!(bzh, prob.grid.rfftplan, prob.vars.bz);
-    copyto!(prob.vars.bxh, deepcopy(bxh));
-    copyto!(prob.vars.byh, deepcopy(byh));
-    copyto!(prob.vars.bzh, deepcopy(bzh));  
   end
 
   #if prob.flag.vp == true
@@ -275,22 +253,4 @@ function savefile(prob,file_number;file_path_and_name="")
 
   write(fw, "time", prob.clock.t);
   close(fw) 
-end
-
-function MHDintegrator!(prob,t)
-    dt = prob.clock.dt;
-    NStep = Int(round(t/dt));
-    for i =1:NStep
-        stepforward!(prob);
-        MHDupdatevars!(prob);
-    end
-end
-
-function HDintegrator!(prob,t)
-    dt = prob.clock.dt;
-    NStep = Int(round(t/dt));
-    for i =1:NStep
-        stepforward!(prob);
-        HDupdatevars!(prob);
-    end
 end
