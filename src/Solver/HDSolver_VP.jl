@@ -29,6 +29,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀x;
     uᵢ   = vars.ux;
+  	uᵢh  = vars.uxh;
   	∂uᵢh∂t = @view N[:,:,:,params.ux_ind];
 
   elseif direction == "y"
@@ -38,6 +39,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀y;
     uᵢ   = vars.uy;
+  	uᵢh  = vars.uyh;
   	∂uᵢh∂t = @view N[:,:,:,params.uy_ind];
 
   elseif direction == "z"
@@ -47,11 +49,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	k⁻²  = grid.invKrsq;
     U₀   = params.U₀z;
     uᵢ   = vars.uz;
+  	uᵢh  = vars.uzh;
   	∂uᵢh∂t = @view N[:,:,:,params.uz_ind];
 
   else
 
-  	error("Warning : Unknown direction is declerad")
+  	@warn "Warning : Unknown direction is declerad"
 
   end
 
@@ -95,9 +98,6 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     end
 
     #Compute the diffusion term  - νk^2 u_i
-    uᵢ = direction == "x" ? vars.ux : direction == "y" ? vars.uy : vars.uz;
-    uᵢh = vars.nonlinh1;
-    mul!(uᵢh, grid.rfftplan, uᵢ); 
     @. ∂uᵢh∂t += -grid.Krsq*params.ν*uᵢh;
 
     # hyperdiffusion term
@@ -111,10 +111,15 @@ end
 
 function HDcalcN_advection!(N, sol, t, clock, vars, params, grid)
 
-  #Update V Real Conponment
-  ldiv!(vars.ux, grid.rfftplan, deepcopy(@view sol[:, :, :, params.ux_ind]))
-  ldiv!(vars.uy, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uy_ind]))
-  ldiv!(vars.uz, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uz_ind]))
+  #Update V + B Fourier Conponment
+  @. vars.uxh = sol[:, :, :, params.ux_ind];
+  @. vars.uyh = sol[:, :, :, params.uy_ind];
+  @. vars.uzh = sol[:, :, :, params.uz_ind];
+
+  #Update V + B Real Conponment
+  ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh))
+  ldiv!(vars.uy, grid.rfftplan, deepcopy(vars.uyh))
+  ldiv!(vars.uz, grid.rfftplan, deepcopy(vars.uzh))
   
   #Update V Advection
   UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")

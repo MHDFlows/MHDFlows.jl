@@ -15,6 +15,18 @@ struct MVars{Aphys, Atrans, usr_var} <: MHDVars
         by :: Aphys
     "z-component of B-field"
         bz :: Aphys
+    "Fourier transform of x-component of velocity"
+       uxh :: Atrans
+    "Fourier transform of y-component of velocity"
+       uyh :: Atrans
+    "Fourier transform of z-component of velocity"
+       uzh :: Atrans
+    "Fourier transform of x-component of B-field"
+       bxh :: Atrans
+    "Fourier transform of y-component of B-field"
+       byh :: Atrans
+    "Fourier transform of z-component of B-field"
+       bzh :: Atrans
 
     # Temperatory Cache 
     "Non-linear term 1"
@@ -34,7 +46,12 @@ struct HVars{Aphys, Atrans, usr_var} <: MHDVars
     uy :: Aphys
   "z-component of velocity"
     uz :: Aphys
-
+  "Fourier transform of x-component of velocity"
+   uxh :: Atrans
+  "Fourier transform of y-component of velocity"
+   uyh :: Atrans
+  "Fourier transform of z-component of velocity"
+   uzh :: Atrans
   # Temperatory Cache 
   "Non-linear term 1"
    nonlin1 :: Aphys
@@ -162,19 +179,20 @@ function SetMHDVars(::Dev, grid::AbstractGrid, usr_vars) where Dev
   T = eltype(grid)
     
   @devzeros Dev T (grid.nx, grid.ny, grid.nz) ux  uy  uz  bx  by bz nonlin1
-  @devzeros Dev Complex{T} (grid.nkr, grid.nl, grid.nm)  nonlinh1
+  @devzeros Dev Complex{T} (grid.nkr, grid.nl, grid.nm) uxh uyh uzh bxh byh bzh nonlinh1
   
   return MVars( ux,  uy,  uz,  bx,  by,  bz,
-                nonlin1, nonlinh1, usr_vars);
+              uxh, uyh, uzh, bxh, byh, bzh,
+              nonlin1, nonlinh1, usr_vars);
 end
 
 function SetHDVars(::Dev, grid::AbstractGrid, usr_vars) where Dev
   T = eltype(grid)
     
   @devzeros Dev T (grid.nx, grid.ny, grid.nz) ux  uy  uz nonlin1
-  @devzeros Dev Complex{T} (grid.nkr, grid.nl, grid.nm) nonlinh1
+  @devzeros Dev Complex{T} (grid.nkr, grid.nl, grid.nm) uxh uyh uzh nonlinh1
   
-  return HVars( ux,  uy,  uz, 
+  return HVars( ux,  uy,  uz,  uxh, uyh, uzh,
               nonlin1, nonlinh1, usr_vars);
 end
 

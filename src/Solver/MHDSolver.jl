@@ -32,6 +32,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	a    = 1;
   	kₐ   = grid.kr;
   	k⁻²  = grid.invKrsq;
+  	uᵢh  = vars.uxh;
   	∂uᵢh∂t = @view N[:,:,:,params.ux_ind];
 
   elseif direction == "y"
@@ -39,17 +40,20 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   	a    = 2;
   	kₐ   = grid.l;
   	k⁻²  = grid.invKrsq;
+  	uᵢh  = vars.uyh;
   	∂uᵢh∂t = @view N[:,:,:,params.uy_ind];
 
   elseif direction == "z"
+
   	a    = 3;
   	kₐ   = grid.m;
   	k⁻²  = grid.invKrsq;
+  	uᵢh  = vars.uzh;
   	∂uᵢh∂t = @view N[:,:,:,params.uz_ind];
 
   else
 
-  	error("Warning : Unknown direction is declerad")
+  	@warn "Warning : Unknown direction is declerad"
 
   end
 
@@ -74,15 +78,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     end
     
     #Compute the diffusion term  - νk^2 u_i
-    uᵢ = direction == "x" ? vars.ux : direction == "y" ? vars.uy : vars.uz;
-    uᵢh = vars.nonlinh1;
-    mul!(uᵢh, grid.rfftplan, uᵢ); 
     @. ∂uᵢh∂t += -grid.Krsq*params.ν*uᵢh;
     
-    # hyperdiffusion term
+    #=# hyperdiffusion term
     if params.nν > 1
       @. ∂uᵢh∂t += -grid.Krsq^params.nν*params.ν*uᵢh;
-    end
+    end=#
 
     return nothing
     
@@ -100,18 +101,21 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
 
 		uᵢ  = vars.ux;
 		bᵢ  = vars.bx; 
+		bᵢh = vars.bxh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.bx_ind];
 
 	elseif direction == "y"
 
 		uᵢ  = vars.uy;
 		bᵢ  = vars.by; 
+		bᵢh = vars.byh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.by_ind];
 
 	elseif direction == "z"
 
 		uᵢ  = vars.uz;
 		bᵢ  = vars.bz; 
+		bᵢh = vars.bzh; 
 		∂Bᵢh∂t = @view N[:,:,:,params.bz_ind];
 
 	else
@@ -139,8 +143,6 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
     end
     
     #Compute the diffusion term  - ηk^2 B_i
-    bᵢh = vars.nonlinh1;
-    mul!(bᵢh, grid.rfftplan, bᵢ); 
     @. ∂Bᵢh∂t += -grid.Krsq*params.η*bᵢh;
 
     # hyperdiffusion term
@@ -154,23 +156,59 @@ end
 
 function MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
 
+  dealias!(sol, grid);
+
+  #Update V + B Fourier Conponment
+  copyto!(vars.uxh, @view sol[:, :, :, params.ux_ind]);
+  copyto!(vars.uyh, @view sol[:, :, :, params.uy_ind]);
+  copyto!(vars.uzh, @view sol[:, :, :, params.uz_ind]);
+    
+  copyto!(vars.bxh, @view sol[:, :, :, params.bx_ind]);
+  copyto!(vars.byh, @view sol[:, :, :, params.by_ind]);
+  copyto!(vars.bzh, @view sol[:, :, :, params.bz_ind]);
+
   #Update V + B Real Conponment
-  ldiv!(vars.ux, grid.rfftplan, deepcopy(@view sol[:, :, :, params.ux_ind]));
-  ldiv!(vars.uy, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uy_ind]));
-  ldiv!(vars.uz, grid.rfftplan, deepcopy(@view sol[:, :, :, params.uz_ind]));
-  ldiv!(vars.bx, grid.rfftplan, deepcopy(@view sol[:, :, :, params.bx_ind]));
-  ldiv!(vars.by, grid.rfftplan, deepcopy(@view sol[:, :, :, params.by_ind]));
-  ldiv!(vars.bz, grid.rfftplan, deepcopy(@view sol[:, :, :, params.bz_ind])); 
+  ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh))
+  ldiv!(vars.uy, grid.rfftplan, deepcopy(vars.uyh))
+  ldiv!(vars.uz, grid.rfftplan, deepcopy(vars.uzh))
+  ldiv!(vars.bx, grid.rfftplan, deepcopy(vars.bxh))
+  ldiv!(vars.by, grid.rfftplan, deepcopy(vars.byh))
+  ldiv!(vars.bz, grid.rfftplan, deepcopy(vars.bzh))  
   
   #Update V Advection
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x");
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y");
-  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z");
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y")
+  UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z")
   
   #Update B Advection
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x");
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y");
-  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z"); 
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="y")
+  BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="z")  
+  
+  return nothing
+end
+
+function MHDupdatevars!(prob)
+  vars, grid, sol, params = prob.vars, prob.grid, prob.sol, prob.params
+  
+  dealias!(sol, grid);
+  
+  #Update V + B Fourier Conponment
+  copyto!(vars.uxh, @view sol[:, :, :, params.ux_ind]);
+  copyto!(vars.uyh, @view sol[:, :, :, params.uy_ind]);
+  copyto!(vars.uzh, @view sol[:, :, :, params.uz_ind]);
+
+  copyto!(vars.bxh, @view sol[:, :, :, params.bx_ind]);
+  copyto!(vars.byh, @view sol[:, :, :, params.by_ind]);
+  copyto!(vars.bzh, @view sol[:, :, :, params.bz_ind]);
+
+  #Update V + B Real Conponment
+  ldiv!(vars.ux, grid.rfftplan, deepcopy(vars.uxh)) # deepcopy() since inverse real-fft destroys its input
+  ldiv!(vars.uy, grid.rfftplan, deepcopy(vars.uyh)) # deepcopy() since inverse real-fft destroys its input
+  ldiv!(vars.uz, grid.rfftplan, deepcopy(vars.uzh)) # deepcopy() since inverse real-fft destroys its input
+  ldiv!(vars.bx, grid.rfftplan, deepcopy(vars.bxh)) # deepcopy() since inverse real-fft destroys its input
+  ldiv!(vars.by, grid.rfftplan, deepcopy(vars.byh)) # deepcopy() since inverse real-fft destroys its input
+  ldiv!(vars.bz, grid.rfftplan, deepcopy(vars.bzh)) # deepcopy() since inverse real-fft destroys its input
   
   return nothing
 end
