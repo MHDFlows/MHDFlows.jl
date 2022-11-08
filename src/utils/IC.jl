@@ -93,7 +93,7 @@ function DivFreeSpectraMap( Nx::Int, Ny::Int, Nz::Int;
                             Lx = 2π,
                             dev = CPU(), 
                             P = 1, k0 = -5/3/2, b = 1, T = Float64)
-  grid = ThreeDGrid(dev; nx = Nx, Lx = Lx, ny=Ny, nz=Nz, T = T);
+  grid = ThreeDGrid(dev; nx = Nx, Lx = Lx, ny=Ny, nz=Nz, T = T,nthreads = 8);
   return DivFreeSpectraMap( grid; P = P, k0 = k0, b = b);
 end
 
@@ -145,4 +145,26 @@ function DivFreeSpectraMap( grid;
 
   return Fx,Fy,Fz;
   
+end
+
+
+"""
+Function of reading the HDF5 file written by MHDFlows
+  Keyword arguments
+=================
+- `FileName`: string of the file location of the files
+$(TYPEDFIELDS)
+"""
+function readMHDFlows(FileName)
+    F32(A::Array) = convert(Array{Float32,3},A);
+    f = h5open(FileName);
+    iv = F32(read(f,"i_velocity"));
+    jv = F32(read(f,"j_velocity"));
+    kv = F32(read(f,"k_velocity"));
+    ib = F32(read(f,"i_mag_field"));
+    jb = F32(read(f,"j_mag_field"));
+    kb = F32(read(f,"k_mag_field"));
+    t  = read(f,"time");
+    close(f)
+    return iv,jv,kv,ib,jb,kb,t
 end

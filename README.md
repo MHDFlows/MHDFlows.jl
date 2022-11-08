@@ -52,19 +52,19 @@ Method: compute the average time used of 20 iterations using RK4 method
 
 Environment: WSL2 in Win11 (Ubuntu 18.04 LTS through jupyter-lab)
 
-**HD** (Taylor Green Vortex)
+**HD** (Taylor Green Vortex, T = Float32)
 
 | Spec CPU/GPU                | $32^3$ | $64^3$ | $128^3$ | $256^3$ |
 | --------------------------- | ------ | ------ | ------- | ------- |
 | AMD Ryzen 7 5800x 8 threads | 0.139s | 0.178s | 0.764s  | 7.025s  |
 | NVIDIA RTX 3080 10GB        | 0.016s | 0.018s | 0.038s  | 0.211s  |
 
-**MHD** (Taylor Green Vortex)
+**MHD** (Taylor Green Vortex, T = Float32)
 
 | Spec CPU/GPU                | $32^3$ | $64^3$ | $128^3$ | $256^3$ |
 | --------------------------- | ------ | ------ | ------- | ------- |
 | AMD Ryzen 7 5800x 8 threads | 0.19s  | 0.231s | 1.8s    | 18.48s  |
-| NVIDIA RTX 3080 10GB        | 0.041s | 0.060s | 0.15s   | 1.23s   |
+| NVIDIA RTX 3080 10GB        | 0.019s | 0.019s | 0.052s  | 0.44 s  |
 
 ## Example
 Few examples were set up to illustrate the workflow of using this package. See `example\` for more detail.  The documentation is work in progress and will be available in the future. 
