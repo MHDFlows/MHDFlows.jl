@@ -21,6 +21,7 @@ abstract type MHDVars <: AbstractVars end
 include("DyeModule.jl")
 include("Problems.jl")
 include("pgen.jl")
+include("Solver/VPSolver.jl")
 include("Solver/HDSolver.jl")
 include("Solver/MHDSolver.jl")
 include("DiagnosticWrapper.jl")

@@ -97,7 +97,7 @@ function Problem(dev::Device;
              B = B_field, VP = VP_method, ν = ν, η = η, nν = nν);
 
   # Declare Fiuld Equations that will be iterating 
-  equation = Equation_with_forcing(dev, grid; B = B_field, VP = VP_method);
+  equation = Equation_with_forcing(dev, grid; B = B_field);
 
   # Return the Problem
   return MHDFLowsProblem(equation, stepper, dt, grid, vars, params, dev;
@@ -105,29 +105,24 @@ function Problem(dev::Device;
 
 end
 
-function Equation_with_forcing(dev, grid::AbstractGrid; B = false, VP= false)
+function Equation_with_forcing(dev, grid::AbstractGrid; B = false)
   T = eltype(grid);
   Nₗ = ifelse(B,6,3)
   L = zeros(dev, T, (grid.nkr, grid.nl, grid.nm, Nₗ));
 
-  if (B)
-  	calcN! = ifelse(VP,MHDcalcN_VP!,MHDcalcN!);
-  else
-  	calcN! = ifelse(VP, HDcalcN_VP!, HDcalcN!);
-  end
+  calcN! = B ? MHDcalcN! : HDcalcN!;
   
   return FourierFlows.Equation(L,calcN!, grid);
 end
 
 
 function MHDcalcN!(N, sol, t, clock, vars, params, grid)
+  
   dealias!(sol, grid)
   
   MHDSolver.MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end
@@ -138,32 +133,6 @@ function HDcalcN!(N, sol, t, clock, vars, params, grid)
   HDSolver.HDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
   addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
-  
-  return nothing
-end
-
-function MHDcalcN_VP!(N, sol, t, clock, vars, params, grid)
-  dealias!(sol, grid)
-  
-  MHDSolver_VP.MHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
-  
-  addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
-  
-  return nothing
-end
-
-function HDcalcN_VP!(N, sol, t, clock, vars, params, grid)
-  dealias!(sol, grid)
-  
-  HDSolver_VP.HDcalcN_advection!(N, sol, t, clock, vars, params, grid)
-  
-  addforcing!(N, sol, t, clock, vars, params, grid)
-
-  dealias!(N, grid)
   
   return nothing
 end
