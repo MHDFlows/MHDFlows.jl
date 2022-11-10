@@ -53,13 +53,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
   end
 
   @. ∂uᵢh∂t*= 0;
-
+  uᵢuⱼ  = vars.nonlin1;    
+  uᵢuⱼh = vars.nonlinh1;
   for (uᵢ,kᵢ) ∈ zip([vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m])
     for (uⱼ,kⱼ,j) ∈ zip([vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m],[1, 2, 3])
       
       @timeit_debug params.debugTimer "Pseudo" begin
-        uᵢuⱼ  = vars.nonlin1;    
-        uᵢuⱼh = vars.nonlinh1;
         # Pre-Calculation in Real Space
         @. uᵢuⱼ = uᵢ*uⱼ;
       end
@@ -73,7 +72,7 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
         # Perform the actual calculation
         @. ∂uᵢh∂t += -im*kᵢ*(δ(a,j)-kₐ*kⱼ*k⁻²)*uᵢuⱼh;
       end
-        
+
     end
   end
   

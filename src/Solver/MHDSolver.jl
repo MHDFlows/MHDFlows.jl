@@ -52,13 +52,12 @@ function UᵢUpdate!(N, sol, t, clock, vars, params, grid; direction="x")
   end
 
   @. ∂uᵢh∂t*= 0;
-
+  bᵢbⱼ_minus_uᵢuⱼ  = vars.nonlin1;  
+  bᵢbⱼ_minus_uᵢuⱼh = vars.nonlinh1;
   for (bᵢ,uᵢ,kᵢ) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m])
     for (bⱼ,uⱼ,kⱼ,j) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m],[1, 2, 3])
       
       @timeit_debug params.debugTimer "Pseudo" begin
-        bᵢbⱼ_minus_uᵢuⱼ  = vars.nonlin1;  
-        bᵢbⱼ_minus_uᵢuⱼh = vars.nonlinh1;
         # Perform Computation in Real space
         @. bᵢbⱼ_minus_uᵢuⱼ = bᵢ*bⱼ - uᵢ*uⱼ;     
       end
@@ -133,12 +132,12 @@ function BᵢUpdate!(N, sol, t, clock, vars, params, grid;direction="x")
 	end
 
   @. ∂Bᵢh∂t*= 0;
+  uᵢbⱼ_minus_bᵢuⱼ  = vars.nonlin1;        
+  uᵢbⱼ_minus_bᵢuⱼh = vars.nonlinh1;
   #Compute the first term, im ∑_j k_j*(b_iu_j - u_ib_j)
   for (bⱼ,uⱼ,kⱼ,j) ∈ zip([vars.bx,vars.by,vars.bz],[vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m],[1,2,3])
     if a != j
       @timeit_debug params.debugTimer "Pseudo" begin
-        uᵢbⱼ_minus_bᵢuⱼ  = vars.nonlin1;        
-        uᵢbⱼ_minus_bᵢuⱼh = vars.nonlinh1;
         # Perform Computation in Real space
         @. uᵢbⱼ_minus_bᵢuⱼ = uᵢ*bⱼ - bᵢ*uⱼ;
       end
