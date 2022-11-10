@@ -11,7 +11,7 @@ Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Jul
 This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up the module. The main purpose of MHDFlows.jl aims to solve the portable 3D MHD problems on personal computer instead of cluster. Utilizing the Nvidia CUDA technology, the MHDFlows.jl could solve the front-end MHD turbulence research problems in the order of few-ten minutes by using a mid to high end gaming display card (see Memory usage & speed section). Feel free to modify yourself for your own research purpose.
 
 ## Version No.
-v 0.1.3
+v 0.1.4
 
 ## Installation Guide & compatibility 
 The current version is tested on v1.5.3/1.7.3/1.8.2 version.
@@ -41,16 +41,17 @@ For GPU users, here are some useful numbers of memory requirement for choosing t
 
 | Memory Size | Maximum Resolution ( $N^3$ )    |
 | ----------- | ------------------------------ |
-| 6 GB        | $256^3$ (pure HD simulation) |
+| 6 GB        | $256^3$ (pure MHD simulation) |
 | 10 GB       | $300^3$ (pure MHD simulation) |
+| 40 GB       | $512^3$ (pure MHD simulation) |
 
 **Speed**
 
-The following table provides the reference of the runtime for 1 iteration in pure HD/MHD computation. As the benchmarks are running on the WSL2, the runtime could varies and does not reflect the best performance.
+The following table provides the reference of the average runtime of 1 iteration in pure HD/MHD computation. As the benchmarks are running on the WSL2, the runtime could varies and does not reflect the best performance.
 
-Method: compute the average time used of 20 iterations using RK4 method
+Method: compute the average time used of 100 iterations using RK4 method
 
-Environment: WSL2 in Win11 (Ubuntu 18.04 LTS through jupyter-lab)
+Environment: WSL2 in Win11 (Ubuntu 18.04/20.04 LTS through jupyter-lab)
 
 **HD** (Taylor Green Vortex, T = Float32)
 
