@@ -21,7 +21,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
                                      CFL_Coef = 0.25,
                                  CFL_function = nothingfunction,
                                         diags = [],
-                          dynamical_dashboard = true,
+                            dynamic_dashboard = true,
                                   loop_number = 100,
                                          save = false,
                                      save_loc = "",
@@ -57,7 +57,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   dy = prob.grid.Ly/prob.grid.ny;
   dz = prob.grid.Lz/prob.grid.nz;
   dl = minimum([dx,dy,dz]);
-  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(2)/vi,CFL_Coef*dl^2/vi);
+  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(prob.params.nν)/vi,CFL_Coef*dl^2/vi);
 
   # Declare the iterator paramters
   t_next_save = prob.clock.t + dump_dt;
@@ -69,7 +69,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
     prob.clock.dt = usr_dt;
   end
 
-  #Corret v and b if VP method is turned on
+  # Clean the divgence of b if VP method is turned on
   if (prob.flag.vp == true)
     #MHDSolver_VP.DivVCorrection!(prob);
     prob.flag.b == true ? VPSolver.DivBCorrection!(prob) : nothing;
@@ -79,7 +79,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   WellcomeMessage()
 
   # check if user enable the dynamical dashboard
-  if dynamical_dashboard 
+  if dynamic_dashboard 
     prog = Progress(N₀; desc = "Simulation in rogress :", 
                         barglyphs=BarGlyphs('|','█', ['▁' ,'▂' ,'▃' ,'▄' ,'▅' ,'▆', '▇'],' ','|',),
                         barlen=10, showspeed=true)
@@ -99,9 +99,6 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
       #update the system; 
       stepforward!(prob.sol, prob.clock, prob.timestepper, prob.eqn, 
                    prob.vars, prob.params, prob.grid);
-
-      # dealias
-      dealias!(prob.sol, prob.grid);
 
       #update the diags
       increment!(diags);
@@ -128,7 +125,7 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
       end
 
       # Update the dashboard information to user
-      dynamical_dashboard ? Dynamical_dashboard(prob,prog, N₀,t₀) : 
+      dynamic_dashboard ? Dynamic_Dashboard(prob,prog, N₀,t₀) : 
                             Static_Dashbroad(prob,prob.clock.step% loop_number);
     end
 
@@ -146,19 +143,20 @@ end
 function getCFL!(prob, t_diff; Coef = 0.3);
   #Solving the dt of CFL condition using dt = Coef*dx/v
   ux,uy,uz = prob.vars.ux, prob.vars.uy,prob.vars.uz;
+  square_maximum(A) =  mapreduce(x->x*x,max,A);
 
   #Maxmium velocity 
-  v2xmax = maximum(ux.^2);
-  v2ymax = maximum(uy.^2);
-  v2zmax = maximum(uz.^2);
+  v2xmax = square_maximum(ux);
+  v2ymax = square_maximum(uy);
+  v2zmax = square_maximum(uz);
   vmax = sqrt(maximum([v2xmax,v2ymax,v2zmax]));
   
   if prob.flag.b
     #Maxmium Alfvenic velocity 
     bx,by,bz = prob.vars.bx, prob.vars.by,prob.vars.bz;
-    v2xmax = maximum(bx.^2);
-    v2ymax = maximum(by.^2);
-    v2zmax = maximum(bz.^2);
+    v2xmax = square_maximum(bx);
+    v2ymax = square_maximum(by);
+    v2zmax = square_maximum(bz);
     vamax = sqrt(maximum([v2xmax,v2ymax,v2zmax]));
     vmax = maximum([vmax,vamax]);
   end

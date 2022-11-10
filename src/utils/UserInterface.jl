@@ -25,6 +25,8 @@ function WellcomeMessage2()
 
 end
 
+# Function of computing the KE and ME
+∑²(iv,jv,kv) = mapreduce((x,y,z)->(x^2 + y^2 + z^2),+,iv,jv,kv)
 
 # Static dashboard for print n,KE,ME
 function Static_Dashbroad(prob, step_over_check_loop_number::Number);
@@ -64,14 +66,14 @@ function ProbDiagnostic(prob)
  #     χ  = prob.params.χ;  
  #     KE =  string(round(sum(vx[χ.==0].^2+vy[χ.==0].^2 + vz[χ.==0].^2)*dV,sigdigits=3));
  #else
-      KE = round(sum(vx.^2+vy.^2 + vz.^2)*dV,sigdigits=3);
+      KE = round(∑²(vx,vy,vz)*dV,sigdigits=3);
  # end
 
   isnan(KE) ? error("detected NaN! Quit the simulation right now.") : nothing;
 
   if (prob.flag.b == true)
     bx,by,bz = prob.vars.bx,prob.vars.by,prob.vars.bz;
-    ME = round(sum(bx.^2+by.^2 + bz.^2)*dV,sigdigits=3);
+    ME = round(∑²(bx,by,bz)*dV,sigdigits=3);
 
     return KE, ME
   else
@@ -81,7 +83,7 @@ function ProbDiagnostic(prob)
 end
 
 # function for updating dynamical dashboard
-function Dynamical_dashboard(prob,prog,N₀,t₀)
+function Dynamic_Dashboard(prob,prog,N₀,t₀)
   generate_showvalues(iter, Stats) = () -> [(:Progress,iter), (:Statistics,stats)];
   n = prob.clock.step;
   t    = round(prob.clock.t,sigdigits=3);
