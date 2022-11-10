@@ -63,8 +63,8 @@ Environment: WSL2 in Win11 (Ubuntu 18.04 LTS through jupyter-lab)
 
 | Spec CPU/GPU                | $32^3$ | $64^3$ | $128^3$ | $256^3$ |
 | --------------------------- | ------ | ------ | ------- | ------- |
-| AMD Ryzen 7 5800x 8 threads | 0.19s  | 0.231s | 1.8s    | 18.48s  |
-| NVIDIA RTX 3080 10GB        | 0.019s | 0.019s | 0.052s  | 0.44 s  |
+| AMD Ryzen 7 5800x 8 threads | 0.12s  | 0.220s | 1.49s   | 14.50s  |
+| NVIDIA RTX 3080 10GB        | 0.019s | 0.019s | 0.050s  | 0.39 s  |
 
 ## Example
 Few examples were set up to illustrate the workflow of using this package. See `example\` for more detail.  The documentation is work in progress and will be available in the future. 
