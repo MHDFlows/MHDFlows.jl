@@ -17,7 +17,7 @@ end
 function Get_Cho_vars_and_function(::Dev, nx::Int, ny::Int, nz::Int; T=Float32) where Dev
   @devzeros Dev Complex{T} ( div(nx,2)+1, ny, nz) Φ1 Φ2
   @devzeros Dev         T  ( div(nx,2)+1, ny, nz) s1y s1z s2x s2y s2z
-  return Cho_vars(s1,s2,Φ1,Φ2,0.0,0.0), ChoForcedriving;
+  return Cho_vars(s1y,s1z,s2x,s2y,s2z,Φ1,Φ2,0.0,0.0), ChoForceDriving!;
 end
 
 function ChoForceDriving!(N, sol, t, clock, vars, params, grid)
@@ -34,7 +34,7 @@ function ChoForceDriving!(N, sol, t, clock, vars, params, grid)
 
   # Actual computation
   @. eⁱᶿ = exp.(im*(Φ₁.+Φ₂)./2);
-  @. N[:,:,:,ux_ind] += A.*eⁱᶿ.*Fk.*(  0.*cos.((Φ1.-Φ2)/2) + s2x.*sin.((Φ1 .-Φ2)/2));
+  @. N[:,:,:,ux_ind] += A.*eⁱᶿ.*Fk.*( 0 .*cos.((Φ1.-Φ2)/2) + s2x.*sin.((Φ1 .-Φ2)/2));
   @. N[:,:,:,uy_ind] += A.*eⁱᶿ.*Fk.*(s1y.*cos.((Φ1.-Φ2)/2) + s2y.*sin.((Φ1 .-Φ2)/2));
   @. N[:,:,:,uz_ind] += A.*eⁱᶿ.*Fk.*(s1z.*cos.((Φ1.-Φ2)/2) + s2z.*sin.((Φ1 .-Φ2)/2));
 
@@ -46,15 +46,15 @@ function Set_up_Cho_vars(prob; kf = 15)
   k_component = 22;
   fox,foy,foz = zeros(Int32,k_component),zeros(Int32,k_component),zeros(Int32,k_component);
   k = 1;
-  for θ ∈ [15,20,25].*π/180 #anisotropic turbulence
-    for ϕ ∈ [-25,-15,-5,0,5,15,25].*π/180
+  for θ ∈ [80,85,90].*π/180 #anisotropic turbulence
+    for ϕ ∈ [-15,-10,-5,0,5,10,15].*π/180
       fox[k] = round(Int32,kf*cos(θ));
       foy[k] = round(Int32,kf*sin(θ)*sin(ϕ));
       foz[k] = round(Int32,kf*sin(θ)*cos(ϕ));
       k+=1;
     end
   end
-  fox[22],foy[22],foz[22] = kf,0.0,0.0;
+  fox[22],foy[22],foz[22] = 0.0,0.0,kf;
 
   # Set up vector set s1 s2 that ⊥ k_f
   @devzeros CPU() Complex{T} ( div(nx,2)+1, ny, nz) Φ1 Φ2

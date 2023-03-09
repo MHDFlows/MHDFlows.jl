@@ -53,13 +53,13 @@ function ChoForceDriving!(N, sol, t, clock, vars, params, grid)
   A,kf = copy(vars.usr_vars.P::T),vars.usr_vars.kf::T;
   vi = params.ν;
   dt = clock.dt;
-  A*= exp(-vi*kf^2*dt);
+  A_ = A*exp(-vi*kf^2*dt);
 
   # Actual computation
   @. eⁱᶿ = 0;
   @. eⁱᶿ = exp.(im*(Φ1.+Φ2)./2);
   for (u_ind,s1,s2) in zip([params.ux_ind,params.uy_ind,params.uz_ind],[0,s1y,s1z],[s2x,s2y,s2z])
-       @. N[:,:,:,u_ind] += A.*eⁱᶿ.*( s1 .*cos.((Φ1.-Φ2)/2) + s2.*sin.((Φ1.-Φ2)/2));   
+       @. N[:,:,:,u_ind] += A_.*eⁱᶿ.*( s1 .*cos.((Φ1.-Φ2)/2) + s2.*sin.((Φ1.-Φ2)/2));   
   end
 
   # Large Scale Forcing
@@ -83,15 +83,17 @@ function Set_up_Cho_vars(prob; P = 1e7, kf = 15)
   k_component = 22;
   fox,foy,foz = zeros(Int32,k_component),zeros(Int32,k_component),zeros(Int32,k_component);
   k = 1;
-  for θ ∈ [15,20,25].*π/180 #anisotropic turbulence
-    for ϕ ∈ [-25,-15,-5,0,5,15,25].*π/180
+  fox,foy,foz = zeros(Int32,k_component),zeros(Int32,k_component),zeros(Int32,k_component);
+  k = 1;
+  for θ ∈ [80,85,90].*π/180 #anisotropic turbulence
+    for ϕ ∈ [-15,-10,-5,0,5,10,15].*π/180
       fox[k] = round(Int32,kf*cos(θ));
       foy[k] = round(Int32,kf*sin(θ)*sin(ϕ));
       foz[k] = round(Int32,kf*sin(θ)*cos(ϕ));
       k+=1;
     end
   end
-  fox[22],foy[22],foz[22] = kf,0.0,0.0;
+  fox[22],foy[22],foz[22] = 0.0,0.0,kf;
 
   # Set up vector set s1 s2 that ⊥ k_f
   @devzeros typeof(CPU()) Complex{T} ( div(nx,2)+1, ny, nz) Φ1 Φ2
@@ -122,7 +124,7 @@ function Set_up_Cho_vars(prob; P = 1e7, kf = 15)
     end
   end
 
-  Fk[1,2,1] = -10/dx/dy/dz;
+  #Fk[1,2,1] = -10/dx/dy/dz;
   #Fk[1,1,1] =  0/dx/dy/dz;
   copyto!(prob.vars.usr_vars.Fk , Fk);
   copyto!(prob.vars.usr_vars.s1y,s1y);

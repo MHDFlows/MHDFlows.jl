@@ -5,12 +5,12 @@ export xy_to_polar
 
 
 """
+    xy_to_polar(ux,uy)
 convert the vectors (B-field/velocity) from xyz coordinates  to rθz coordinates
   Keyword arguments
 =================
 - `ux/uy`: x/y conponment vector
 - `Lx/Ly` : length size of the problem 
-$(TYPEDFIELDS)
 """
 function xy_to_polar(ux::Array,uy::Array;Lx=2π,Ly=Lx,T=Float32)   
   # xyz Coordinetes -> rθz Coordinates

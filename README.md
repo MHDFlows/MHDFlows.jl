@@ -3,18 +3,20 @@
 
 Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Julia language with <a href="http://github.com/FourierFlows/FourierFlows.jl">FourierFlows.jl</a>. This solver support the following features:
 
-1. 2D incompressible HD/MHD simulation (periodic boundary)
-2. 3D incompressible HD/MHD simulation (periodic boundary)
+1. 2/3D incompressible HD/MHD simulation (periodic boundary)
 3. Incompressible  HD/MHD simulation with volume penalization method
-4. Passive Dye Tracer (Experimental Feature)
+4. Isothermal compressible  HD/MHD simulation (periodic boundary)
+5. 2/3D Electron magnetohydrodynamic simulation (periodic boundary)
+6. Passive Dye Tracer (Experimental Feature)
 
 This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up the module. The main purpose of MHDFlows.jl aims to solve the portable 3D MHD problems on personal computer instead of cluster. Utilizing the Nvidia CUDA technology, the MHDFlows.jl could solve the front-end MHD turbulence research problems in the order of few-ten minutes by using a mid to high end gaming display card (see Memory usage & speed section). Feel free to modify yourself for your own research purpose.
 
 ## Version No.
-v 0.1.4
+v 0.2.0
+note : v 0.2.0 will be the final major update before the multi-gpu version release 
 
 ## Installation Guide & compatibility 
-The current version is tested on v1.5.3/1.7.3/1.8.2 version.
+The current version is tested on v1.7.3/1.8.2/1.9.0 version.
 
 Currently, you have two way of installing MHDFlows.jl
 
@@ -24,7 +26,7 @@ Currently, you have two way of installing MHDFlows.jl
 
    ```julia
    julia>
-   (v1.7) pkg> add MHDFlows
+   (v1.8) pkg> add MHDFlows
    ```
 
 
@@ -37,13 +39,14 @@ The MHD Solver could either run on CPU or GPU. The scalability is same as Fourie
 
 **Memory usage**
 
-For GPU users, here are some useful numbers of memory requirement for choosing the resolution of the simulation. You may end up getting higher resolution for the same memory.
+For GPU users, here are some useful numbers of memory requirement for choosing the resolution of the simulation with RK4/ LSRK4 method. You may end up getting higher resolution for the same memory.
 
-| Memory Size | Maximum Resolution ( $N^3$ )    |
-| ----------- | ------------------------------ |
+| Memory Size | Maximum Resolution ( $N^3$ )  |
+| ----------- | ------------------------------|
 | 6 GB        | $256^3$ (pure MHD simulation) |
-| 10 GB       | $300^3$ (pure MHD simulation) |
-| 40 GB       | $512^3$ (pure MHD simulation) |
+| 10 GB       | $320^3$ (pure MHD simulation) |
+| 24 GB       | $512^3$ (pure MHD simulation) |
+| 80 GB       | $700^3$ (pure MHD simulation) |
 
 **Speed**
 
@@ -57,18 +60,18 @@ Environment: WSL2 in Win11 (Ubuntu 18.04/20.04 LTS through jupyter-lab)
 
 | Spec CPU/GPU                | $32^3$ | $64^3$ | $128^3$ | $256^3$ |
 | --------------------------- | ------ | ------ | ------- | ------- |
-| AMD Ryzen 7 5800x 8 threads | 0.139s | 0.178s | 0.764s  | 7.025s  |
-| NVIDIA RTX 3080 10GB        | 0.016s | 0.018s | 0.038s  | 0.211s  |
+| AMD Ryzen 7 5800x 8 threads | 0.040s | 0.074s | 0.490S  | 7.025s  |
+| NVIDIA RTX 3080 10GB        | 0.016s | 0.018s | 0.023s  | 0.152s  |
 
 **MHD** (Taylor Green Vortex, T = Float32)
 
 | Spec CPU/GPU                | $32^3$ | $64^3$ | $128^3$ | $256^3$ |
 | --------------------------- | ------ | ------ | ------- | ------- |
-| AMD Ryzen 7 5800x 8 threads | 0.12s  | 0.220s | 1.49s   | 14.50s  |
-| NVIDIA RTX 3080 10GB        | 0.019s | 0.019s | 0.050s  | 0.39 s  |
+| AMD Ryzen 7 5800x 8 threads | 0.049s | 0.180s | 1.490s  | 14.50s  |
+| NVIDIA RTX 3080 10GB        | 0.013s | 0.012s | 0.037s  | 0.271s  |
 
 ## Example
-Few examples were set up to illustrate the workflow of using this package. See `example\` for more detail.  The documentation is work in progress and will be available in the future. 
+Few examples were set up to illustrate the workflow of using this package. [Check out](https://github.com/MHDFlows/MHDFlows-Example) for more detail.  The documentation is work in progress and will be available in the future. 
 
 ## Developer
 MHDFlows is currently developed by [Ka Wai HO@UW-Madison Astronomy](https://scholar.google.com/citations?user=h2j8wbYAAAAJ&hl=en).

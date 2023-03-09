@@ -106,25 +106,25 @@ function DyeEqn!(N, sol, t, clock, vars, params, grid)
     # ∂ρₖ/∂t = ∑ᵢ -im*kᵢ*(ρₖ vₖᵢ)
     
     # Initialization of rho
-    @. N*=0;
+    @. N*=0
 
     for (uᵢ,kᵢ) ∈ zip([vars.ux,vars.uy,vars.uz],[grid.kr,grid.l,grid.m])
          # Initialization
         @. vars.nonlin1 *= 0;
-        ρuᵢ  = vars.nonlin1;
-        ρuᵢh = vars.nonlinh1;
+        ρuᵢ  = vars.nonlin1
+        ρuᵢh = vars.nonlinh1
 
         # get back the updated sol in real space using fft
         ldiv!(ρuᵢ, grid.rfftplan, deepcopy(sol))  
 
         # Pre-Calculation in Real Space
-        @. ρuᵢ *= uᵢ;
+        @. ρuᵢ *= uᵢ
         
         # Fourier transform 
-        mul!(ρuᵢh, grid.rfftplan, ρuᵢ);
+        mul!(ρuᵢh, grid.rfftplan, ρuᵢ)
         
         # Perform the actual calculation
-        @. N += -im*kᵢ*ρuᵢh;
+        @. N += -im*kᵢ*ρuᵢh
     end
     return nothing
 end
