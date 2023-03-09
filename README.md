@@ -12,7 +12,7 @@ Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Jul
 This package leverages the [FourierFlows.jl](http://github.com/FourierFlows/FourierFlows.jl) package to set up the module. The main purpose of MHDFlows.jl aims to solve the portable 3D MHD problems on personal computer instead of cluster. Utilizing the Nvidia CUDA technology, the MHDFlows.jl could solve the front-end MHD turbulence research problems in the order of few-ten minutes by using a mid to high end gaming display card (see Memory usage & speed section). Feel free to modify yourself for your own research purpose.
 
 ## Version No.
-v 0.2.0
+v 0.2.0  
 note : v 0.2.0 will be the final major update before the multi-gpu version release 
 
 ## Installation Guide & compatibility 
