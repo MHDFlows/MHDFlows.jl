@@ -25,6 +25,8 @@ function WellcomeMessage2()
 
 end
 
+# Function of computing the KE and ME
+∑²(iv,jv,kv) = mapreduce((x,y,z)->(x^2 + y^2 + z^2),+,iv,jv,kv)
 
 # Static dashboard for print n,KE,ME
 function Static_Dashbroad(prob, step_over_check_loop_number::Number);
@@ -36,20 +38,24 @@ function Static_Dashbroad(prob, step_over_check_loop_number::Number);
 
   if step_over_check_loop_number == 0
     if (prob.flag.b == true)
-      KE, ME  = ProbDiagnostic(prob);
-      KE_,ME_ = string(KE),string(ME);
-      for i = 1:8-length(string(KE_));KE_= " "*KE_;end
-      println("                 n = $nn, t = $tt, KE = $KE_, ME = $(ME)");
-
+      if prob.flag.e == true
+        KE, ME  = ProbDiagnostic(prob);
+        KE_,ME_ = string(KE),string(ME);
+        for i = 1:8-length(string(KE_));KE_= " "*KE_;end
+        for i = 1:8-length(string(ME_));ME_= " "*ME_;end
+        println("            n = $nn, t = $tt, KE = $KE_, ME = $(ME)");
+      else
+        ME  = ProbDiagnostic(prob);
+        ME_ = string(ME);
+        for i = 1:8-length(string(ME_));ME_= " "*ME_;end
+        println("           n = $nn, t = $tt, ME = $ME_")
+      end
     else
       KE  = ProbDiagnostic(prob);
-      KE_ = string(KE),string(ME);
-      for i = 1:8-length(string(KE));KE= " "*KE;end
-      for i = 1:8-length(string(ME));ME= " "*ME;end
+      KE_ = string(KE);
+      for i = 1:8-length(string(KE_));KE_= " "*KE_;end
       println("           n = $nn, t = $tt, KE = $KE_")
-      
     end
-    isnan(KE) ? error("detected NaN! Quit the simulation right now.") : nothing;
   end
   return nothing
 
@@ -59,21 +65,20 @@ end
 function ProbDiagnostic(prob)
   dx,dy,dz = diff(prob.grid.x)[1],diff(prob.grid.y)[1],diff(prob.grid.z)[1];
   dV = dx*dy*dz;
-  vx,vy,vz = prob.vars.ux,prob.vars.uy,prob.vars.uz;
- # if prob.flag.vp
- #     χ  = prob.params.χ;  
- #     KE =  string(round(sum(vx[χ.==0].^2+vy[χ.==0].^2 + vz[χ.==0].^2)*dV,sigdigits=3));
- #else
-      KE = round(sum(vx.^2+vy.^2 + vz.^2)*dV,sigdigits=3);
- # end
-
-  isnan(KE) ? error("detected NaN! Quit the simulation right now.") : nothing;
-
+  if !prob.flag.e
+    vx,vy,vz = prob.vars.ux,prob.vars.uy,prob.vars.uz;
+    KE = round(∑²(vx,vy,vz)*dV,sigdigits=3);
+    isnan(KE) ? error("detected NaN! Quit the simulation right now.") : nothing;
+  end
   if (prob.flag.b == true)
     bx,by,bz = prob.vars.bx,prob.vars.by,prob.vars.bz;
-    ME = round(sum(bx.^2+by.^2 + bz.^2)*dV,sigdigits=3);
-
-    return KE, ME
+    ME = round(∑²(bx,by,bz)*dV,sigdigits=3);
+    if !prob.flag.e
+      return KE, ME
+    else
+      isnan(ME) ? error("detected NaN! Quit the simulation right now.") : nothing;
+      return ME
+    end
   else
     return KE
   end
@@ -81,14 +86,20 @@ function ProbDiagnostic(prob)
 end
 
 # function for updating dynamical dashboard
-function Dynamical_dashboard(prob,prog,N₀,t₀)
+function Dynamic_Dashboard(prob,prog,N₀,t₀)
   generate_showvalues(iter, Stats) = () -> [(:Progress,iter), (:Statistics,stats)];
   n = prob.clock.step;
-  t    = round(prob.clock.t,sigdigits=3);
-  iter = "iter/Nₒ = $n/$(N₀), t/t₀ = $t/$(t₀)"
+  t    = round( prob.clock.t,sigdigits=3);
+  dt   = round(prob.clock.dt,sigdigits=3);
+  iter = "iter/Nₒ = $n/$(N₀), t/t₀ = $t/$(t₀), dt = $(dt)"
   if prob.flag.b 
-    KE, ME  = ProbDiagnostic(prob);
-    stats = "KE = $(KE), ME = $(ME)"
+    if prob.flag.e
+      ME  = ProbDiagnostic(prob);
+      stats = "ME = $(ME)"
+    else
+      KE, ME  = ProbDiagnostic(prob);
+      stats = "KE = $(KE), ME = $(ME)"
+    end
   else
     KE = ProbDiagnostic(prob);
     stats = "KE = $(KE)"

@@ -4,40 +4,29 @@
 
 
 """
-    struct Equation{T, TL, G<:AbstractFloat}
-    
-The equation to be solved `∂u/∂t = L*u + N(u)`. Array `L` includes the coefficients
-of the linear term `L*u` and `calcN!` is a function which computes the nonlinear
-term `N(u)`. The struct also includes the problem's `grid` and the float type of the
-state vector (and consequently of `N(u)`).
-$(TYPEDFIELDS)
-"""
-struct Equation{T, TL, G<:AbstractFloat}
-    "array with coefficient for the linear part of the equation"
-       L :: TL
-    "function that computes the nonlinear part of the equation"
-  calcN! :: Function
-    "the grid"
-    grid :: AbstractGrid{G}
-    "the dimensions of `L`"
-    dims :: Tuple
-    "the float type for the state vector"
-       T :: T # eltype or tuple of eltypes of sol and N
-end
-
-"""
     Equation(L, calcN!, grid; dims=supersize(L), T=nothing)
     
 The equation constructor from the array `L` of the coefficients of the linear term, the function 
 `calcN!` that computes the nonlinear term and the `grid` for the problem.
 """
-function Equation(L, calcN!, grid::AbstractGrid{G}; dims=supersize(L), T=nothing) where G
+function Setup_Equation(calcN!, grid::AbstractGrid{G}; T=nothing, Nl = 3) where G
+  dims = tuple(size(grid.Krsq)...,Nl)
   T = T == nothing ? T = cxtype(G) : T
-  
-  return Equation(L, calcN!, grid, dims, T)
+  #Compatibility to FourierFlows.Equation 
+  L = 0
+  return FourierFlows.Equation(L, calcN!, grid; dims=dims)
 end
 
 CheckON(Flag_equal_to_True::Bool) = Flag_equal_to_True ? string("ON") : string("OFF")
+
+function CheckON(FlagB::Bool, FlagE::Bool) 
+  if FlagB 
+    FlagE ? string("ON (EMHD)") : string("ON (Ideal MHD)")
+  else
+    string("OFF")
+  end
+
+end
 
 function CheckDye(dye::Dye)
     if dye.dyeflag == true
@@ -79,8 +68,14 @@ $(TYPEDFIELDS)
 struct Flag
     "Magnetic Field"
      b :: Bool
+     "EMHD Field"
+     e :: Bool
     "Volume Penalization"
     vp :: Bool
+    "Compressibility"
+     c :: Bool
+     "Shear"
+     s :: Bool
 end
 
 """
@@ -89,7 +84,7 @@ end
 A problem that represents a partial differential equation.
 $(TYPEDFIELDS)
 """
-struct MHDFlowsProblem{T, A<:AbstractArray, Tg<:AbstractFloat, TL, Dye, usr_foo} <: AbstractProblem
+struct MHDFlowsProblem{T, A<:AbstractArray, Tg<:AbstractFloat, TL, Dye, usr_foo, AbstractGrid} <: AbstractProblem
     "the state vector"
           sol :: A
     "the problem's slock"
@@ -97,7 +92,7 @@ struct MHDFlowsProblem{T, A<:AbstractArray, Tg<:AbstractFloat, TL, Dye, usr_foo}
     "the equation"
           eqn :: FourierFlows.Equation{T, TL, Tg}
     "the grid"
-         grid :: AbstractGrid{Tg}
+         grid :: AbstractGrid
     "the variables"
          vars :: AbstractVars
     "the parameters"
@@ -122,36 +117,43 @@ to the time-stepper constructor.
 """
 function MHDFLowsProblem(eqn::FourierFlows.Equation, stepper, dt, grid::AbstractGrid{T}, 
                  vars=EmptyVars, params=EmptyParams, dev::Device=CPU(); 
-                 BFlag = false, VPFlag = false, DyeFlag = false, usr_func = [],
+                 BFlag = false, EFlag = false, VPFlag = false, CFlag = false, SFlag = false, DyeFlag = false, usr_func = [],
                  stepperkwargs...) where T
 
   clock = FourierFlows.Clock{T}(dt, 0, 0)
+  if EFlag && stepper == "HM89"
+  #  timestepper = eSSPIFRK3TimeStepper(eqn, dev) #For SFlag
+    timestepper = HM89TimeStepper(eqn, dev) #For EFlag
+  else
+    timestepper = FourierFlows.TimeStepper(stepper, eqn, dt, dev)
+  end
+  sol = zeros(dev, eqn.T, eqn.dims)
 
-  timestepper = FourierFlows.TimeStepper(stepper, eqn, dt, dev);
+  flag = Flag(BFlag, EFlag, VPFlag, CFlag, SFlag)
 
-  sol = zeros(dev, eqn.T, eqn.dims);
+  dye = DyeContructer(dev, DyeFlag, grid)
 
-  flag = Flag(BFlag, VPFlag);
+  usr_func = length(usr_func) == 0 ? [nothingfunction] : usr_func
 
-  dye = DyeContructer(dev, DyeFlag, grid);
-
-  usr_func = length(usr_func) == 0 ? [nothingfunction] : usr_func;
   return MHDFlowsProblem(sol, clock, eqn, grid, vars, params, timestepper, flag, usr_func, dye)
+
 end
 
 show(io::IO, problem::MHDFlowsProblem) =
     print(io, "MHDFlows Problem\n",
-    	        "  │    Funtions\n",
-    		      "  │     ├──────── B-field: "*CheckON(problem.flag.b),'\n',
-    		      "  ├─────├────── VP Method: "*CheckON(problem.flag.vp),'\n',
-    		      "  │     ├──────────── Dye: "*CheckDye(problem.dye),'\n',
-    		      "  │     └── user function: "*CheckFunction(problem.usr_func),'\n',
-    		      "  │                        ",'\n',
-              "  │     Features           ",'\n',  
-              "  │     ├─────────── grid: grid (on " * string(typeof(problem.grid.device)) * ")", '\n',
-              "  │     ├───── parameters: params", '\n',
-              "  │     ├────── variables: vars", '\n',
-              "  └─────├─── state vector: sol", '\n',
-              "        ├─────── equation: eqn", '\n',
-              "        ├────────── clock: clock", '\n',
-              "        └──── timestepper: ", string(nameof(typeof(problem.timestepper))))
+    	    "  │    Funtions\n",
+          "  │     ├ Compressibility: "*CheckON(problem.flag.c),'\n',
+          "  │     ├──────── B-field: "*CheckON(problem.flag.b,problem.flag.e),'\n',
+          "  │     ├────────── Shear: "*CheckON(problem.flag.s),'\n',
+    		  "  ├─────├────── VP Method: "*CheckON(problem.flag.vp),'\n',
+    		  "  │     ├──────────── Dye: "*CheckDye(problem.dye),'\n',
+    		  "  │     └── user function: "*CheckFunction(problem.usr_func),'\n',
+    		  "  │                        ",'\n',
+          "  │     Features           ",'\n',  
+          "  │     ├─────────── grid: grid (on " * string(typeof(problem.grid.device)) * ")", '\n',
+          "  │     ├───── parameters: params", '\n',
+          "  │     ├────── variables: vars", '\n',
+          "  └─────├─── state vector: sol", '\n',
+          "        ├─────── equation: eqn", '\n',
+          "        ├────────── clock: clock", '\n',
+          "        └──── timestepper: ", string(nameof(typeof(problem.timestepper))))

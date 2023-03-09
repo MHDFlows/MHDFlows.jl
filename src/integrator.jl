@@ -3,6 +3,19 @@
 # ----------
 
 """
+    TimeIntegrator!(prob,t₀,N₀,
+                 usr_dt = 0.0,
+               CFL_Coef = 0.25,
+           CFL_function = nothingfunction,
+                  diags = [],
+      dynamic_dashboard = true,
+            loop_number = 100,
+                   save = false,
+               save_loc = "",
+               filename = "",
+            file_number = 0,
+                dump_dt = 0)
+
 Time Integrator for MHDFlows problem 
   Keyword arguments
 =================
@@ -14,14 +27,13 @@ Time Integrator for MHDFlows problem
 - `CFL_function` : user defined CFL function 
 - `loop_number` : iteration count for displaying the diagnostic information (T type : Int)
 - `save` : save option for saving the hdf5 file (T type: true/false)
-$(TYPEDFIELDS)
 """
 function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
                                        usr_dt = 0.0,
                                      CFL_Coef = 0.25,
                                  CFL_function = nothingfunction,
                                         diags = [],
-                          dynamical_dashboard = true,
+                            dynamic_dashboard = true,
                                   loop_number = 100,
                                          save = false,
                                      save_loc = "",
@@ -47,44 +59,44 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
 
   # Declare the timescale for diffusion
   if prob.flag.b
-    vi = maximum([prob.params.ν,prob.params.η]);
-    nv = maximum([prob.params.nν,prob.params.nη]);
+    vi = prob.flag.e ?  prob.params.η : maximum([prob.params.ν,prob.params.η])
+    nv = prob.flag.e ? prob.params.nη : maximum([prob.params.nν,prob.params.nη])
   else
-    vi = prob.params.ν;
+    vi = prob.params.ν
     nv = prob.params.nν
   end
-  dx = prob.grid.Lx/prob.grid.nx;
-  dy = prob.grid.Ly/prob.grid.ny;
-  dz = prob.grid.Lz/prob.grid.nz;
-  dl = minimum([dx,dy,dz]);
-  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(2)/vi,CFL_Coef*dl^2/vi);
+  dx = prob.grid.Lx/prob.grid.nx
+  dy = prob.grid.Ly/prob.grid.ny
+  dz = prob.grid.Lz/prob.grid.nz
+  dl = minimum([dx,dy,dz])
+  t_diff = ifelse(nv >1, CFL_Coef*(dl)^(nv)/vi, CFL_Coef*dl^2/vi)
 
   # Declare the iterator paramters
-  t_next_save = prob.clock.t + dump_dt;
-  prob.clock.step = 0;
+  t_next_save = prob.clock.t + dump_dt
+  prob.clock.step = 0
   
   # Check if user is declared a looping dt
   usr_declared_dt = usr_dt != 0.0 ? true : false 
   if (usr_declared_dt)
-    prob.clock.dt = usr_dt;
+    prob.clock.dt = usr_dt
   end
 
-  #Corret v and b if VP method is turned on
+  # Clean the divgence of b if VP method is turned on
   if (prob.flag.vp == true)
-    #MHDSolver_VP.DivVCorrection!(prob);
-    prob.flag.b == true ? MHDSolver_VP.DivBCorrection!(prob) : nothing;
+    VPSolver.DivVCorrection!(prob)
+    prob.flag.b == true ? VPSolver.DivBCorrection!(prob) : nothing
   end
 
   # Print the wellcome message
   WellcomeMessage()
 
   # check if user enable the dynamical dashboard
-  if dynamical_dashboard 
+  if dynamic_dashboard 
     prog = Progress(N₀; desc = "Simulation in rogress :", 
                         barglyphs=BarGlyphs('|','█', ['▁' ,'▂' ,'▃' ,'▄' ,'▅' ,'▆', '▇'],' ','|',),
                         barlen=10, showspeed=true)
   else
-    prog = nothing;
+    prog = nothing
   end
 
   # Actual Computation Start
@@ -93,43 +105,44 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
 
       if (!usr_declared_dt)
         #update the CFL condition;
-        updateCFL!(prob, t_diff; Coef = CFL_Coef);
+        updateCFL!(prob, t_diff; Coef = CFL_Coef)
       end
 
       #update the system; 
       stepforward!(prob.sol, prob.clock, prob.timestepper, prob.eqn, 
-                   prob.vars, prob.params, prob.grid);
-
-      # dealias
-      dealias!(prob.sol, prob.grid);
+                   prob.vars, prob.params, prob.grid)
 
       #update the diags
-      increment!(diags);
+      increment!(diags)
 
       #Corret b if VP method is turned on
       if (prob.flag.vp == true)
-        prob.flag.b == true ? MHDSolver_VP.DivBCorrection!(prob) : nothing;
+        VPSolver.DivVCorrection!(prob)
+        prob.flag.b == true ? VPSolver.DivBCorrection!(prob) : nothing
       end
 
       #Dye Update
-      prob.dye.dyeflag == true ? prob.dye.stepforward!(prob) : nothing;
+      prob.dye.dyeflag == true ? prob.dye.stepforward!(prob) : nothing
+
+      #Shear Update
+      prob.flag.s == true ? Shear.Shearing_remapping!(prob) : nothing      
 
       #User defined function
       for foo! ∈ prob.usr_func
-          foo!(prob);
+          foo!(prob)
       end
           
       #Save Section   
-      if (save) && prob.clock.t >= t_next_save;
-        ProbDiagnostic(prob);
+      if (save) && prob.clock.t >= t_next_save
+        ProbDiagnostic(prob)
         savefile(prob, file_number; file_path_and_name = file_path_and_name)
-        t_next_save += dump_dt;
-        file_number +=1;
+        t_next_save += dump_dt
+        file_number +=1
       end
 
       # Update the dashboard information to user
-      dynamical_dashboard ? Dynamical_dashboard(prob,prog, N₀,t₀) : 
-                            Static_Dashbroad(prob,prob.clock.step% loop_number);
+      dynamic_dashboard ? Dynamic_Dashboard(prob,prog, N₀,t₀) : 
+                            Static_Dashbroad(prob,prob.clock.step% loop_number)
     end
 
   end
@@ -137,80 +150,90 @@ function TimeIntegrator!(prob,t₀ :: Number,N₀ :: Int;
   Ntotal = prob.grid.nx*prob.grid.ny*prob.grid.nz;
   Total_Update_per_second = prob.clock.step* Ntotal/time;
   print("Total CPU/GPU time run = $(round(time,digits=3)) s," 
-        *" zone update per second = $(round(Total_Update_per_second,digits=3)) \n");
-  return nothing;
+        *" zone update per second = $(round(Total_Update_per_second,digits=3)) \n")
+  return nothing
 
 end
 
-
-function getCFL!(prob, t_diff; Coef = 0.3);
+function getCFL!(prob, t_diff; Coef = 0.3)
   #Solving the dt of CFL condition using dt = Coef*dx/v
-  ux,uy,uz = prob.vars.ux, prob.vars.uy,prob.vars.uz;
+  square_maximum(A) =  mapreduce(x->x*x,max,A)
+  if prob.flag.e
+    # Maxmium velocity, For EMHD, v = ∇×B
+    ux,uy,uz = prob.vars.∇XBᵢ , prob.vars.∇XBⱼ, prob.vars.∇XBₖ;
+    v2xmax = square_maximum(ux)
+    v2ymax = square_maximum(uy)
+    v2zmax = square_maximum(uz)
+    vmax = sqrt(maximum((v2xmax,v2ymax,v2zmax)))
+  else
+    #Maxmium velocity 
+    ux,uy,uz = prob.vars.ux, prob.vars.uy,prob.vars.uz
+    v2xmax = square_maximum(ux)
+    v2ymax = square_maximum(uy)
+    v2zmax = square_maximum(uz)
+    vmax = sqrt(maximum((v2xmax,v2ymax,v2zmax)))
+  end
 
-  #Maxmium velocity 
-  v2xmax = maximum(ux.^2);
-  v2ymax = maximum(uy.^2);
-  v2zmax = maximum(uz.^2);
-  vmax = sqrt(maximum([v2xmax,v2ymax,v2zmax]));
-  
   if prob.flag.b
     #Maxmium Alfvenic velocity 
-    bx,by,bz = prob.vars.bx, prob.vars.by,prob.vars.bz;
-    v2xmax = maximum(bx.^2);
-    v2ymax = maximum(by.^2);
-    v2zmax = maximum(bz.^2);
-    vamax = sqrt(maximum([v2xmax,v2ymax,v2zmax]));
-    vmax = maximum([vmax,vamax]);
+    bx,by,bz = prob.vars.bx, prob.vars.by,prob.vars.bz
+    v2xmax = square_maximum(bx)
+    v2ymax = square_maximum(by)
+    v2zmax = square_maximum(bz)
+    vamax = sqrt(maximum([v2xmax,v2ymax,v2zmax]))
+    vmax = maximum([vmax,vamax])
   end
     
-  dx = prob.grid.Lx/prob.grid.nx;
-  dy = prob.grid.Ly/prob.grid.ny;
-  dz = prob.grid.Lz/prob.grid.nz;
-  dl = minimum([dx,dy,dz]);
-  dt = minimum([Coef*dl/vmax,t_diff]);
-  prob.clock.dt = dt;
+  if prob.flag.c 
+    vmax = maximum([vmax,prob.params.cₛ])
+  end
+
+  dx = prob.grid.Lx/prob.grid.nx
+  dy = prob.grid.Ly/prob.grid.ny
+  dz = prob.grid.Lz/prob.grid.nz
+  # EMHD have two non-linear term, which makes dt ∝ Δx² in stead of Δx
+  dl =  prob.flag.e ? minimum([dx,dy,dz])^2 : minimum([dx,dy,dz])
+  dt = minimum([Coef*dl/vmax,t_diff])
+  prob.clock.dt = dt
 end
 
 function CFL_Init(CFL_function::Function,usr_dt::Number)
   if usr_dt > 0.0
-    error("User define both CFL_function and usr_dt");
+    error("User define both CFL_function and usr_dt")
   elseif usr_dt == 0.0
     return CFL_function
   end
 end
 
 function Restart!(prob,file_path_and_name)
-  f = h5open(file_path_and_name,"r");
-  ux = read(f,"i_velocity");
-  uy = read(f,"j_velocity");
-  uz = read(f,"k_velocity");
-  
-  #Update V Conponment
-  copyto!(prob.vars.ux, deepcopy(ux));
-  copyto!(prob.vars.uy, deepcopy(uy));
-  copyto!(prob.vars.uz, deepcopy(uz));
-  uxh = @view prob.sol[:, :, :, prob.params.ux_ind];
-  uyh = @view prob.sol[:, :, :, prob.params.uy_ind];
-  uzh = @view prob.sol[:, :, :, prob.params.uz_ind];
-  mul!(uxh, prob.grid.rfftplan, prob.vars.ux);   
-  mul!(uyh, prob.grid.rfftplan, prob.vars.uy);
-  mul!(uzh, prob.grid.rfftplan, prob.vars.uz);
+  f = h5open(file_path_and_name,"r")
+
+  if !prob.flag.e
+    ux = read(f,"i_velocity")
+    uy = read(f,"j_velocity")
+    uz = read(f,"k_velocity")
+    
+    #Update V Conponment
+    Move_Data_to_Prob!(ux, prob.vars.ux, view(prob.sol,:, :, :, prob.params.ux_ind),prob.grid)
+    Move_Data_to_Prob!(uy, prob.vars.uy, view(prob.sol,:, :, :, prob.params.uy_ind),prob.grid)
+    Move_Data_to_Prob!(uz, prob.vars.uz, view(prob.sol,:, :, :, prob.params.uz_ind),prob.grid)
+  end
 
   #Update B Conponment
   if prob.flag.b == true
-    bx = read(f,"i_mag_field",);
-    by = read(f,"j_mag_field",);
-    bz = read(f,"k_mag_field",);
+    bx = read(f,"i_mag_field",)
+    by = read(f,"j_mag_field",)
+    bz = read(f,"k_mag_field",)
 
-    copyto!(prob.vars.bx, deepcopy(bx));
-    copyto!(prob.vars.by, deepcopy(by));
-    copyto!(prob.vars.bz, deepcopy(bz));
-    bxh = @view prob.sol[:, :, :, prob.params.bx_ind];
-    byh = @view prob.sol[:, :, :, prob.params.by_ind];
-    bzh = @view prob.sol[:, :, :, prob.params.bz_ind];
-    mul!(bxh, prob.grid.rfftplan, prob.vars.bx);   
-    mul!(byh, prob.grid.rfftplan, prob.vars.by);
-    mul!(bzh, prob.grid.rfftplan, prob.vars.bz);
+    Move_Data_to_Prob!(bx,prob.vars.bx, view(prob.sol,:, :, :, prob.params.bx_ind),prob.grid)
+    Move_Data_to_Prob!(by,prob.vars.by, view(prob.sol,:, :, :, prob.params.by_ind),prob.grid)
+    Move_Data_to_Prob!(bz,prob.vars.bz, view(prob.sol,:, :, :, prob.params.bz_ind),prob.grid)
+  end
+
+  #Update the density
+  if (prob.flag.c == true)
+    ρ = read(f,"gas_density",)
+    Move_Data_to_Prob!(ρ, prob.vars.ρ, view(prob.sol,:, :, :, prob.params.ρ_ind),prob.grid)
   end
 
   #if prob.flag.vp == true
@@ -219,38 +242,47 @@ function Restart!(prob,file_path_and_name)
   #end
 
   #Update Dye
-  if prob.dye.dyeflag == true; 
-    ρ = read(f,"dye_density"); 
-    copyto!(prob.dye.ρ, ρ);
-    ρh  = prob.dye.tmp.sol₀;
-    mul!(ρh, prob.grid.rfftplan, prob.dye.ρ);
+  if prob.dye.dyeflag == true
+    ρ = read(f,"dye_density")
+    copyto!(prob.dye.ρ, ρ)
+    ρh  = prob.dye.tmp.sol₀
+    mul!(ρh, prob.grid.rfftplan, prob.dye.ρ)
   end
 
   # Update time 
-  prob.clock.t = read(f,"time");
+  prob.clock.t = read(f,"time")
   close(f)
+
+  return nothing
 end
 
 function savefile(prob,file_number;file_path_and_name="")
   space_0 = ""
   for i = 1:4-length(string(file_number));space_0*="0";end
   fw = h5open(file_path_and_name*"_t_"*space_0*string(file_number)*".h5","w")
-  write(fw, "i_velocity",  Array(prob.vars.ux));
-  write(fw, "j_velocity",  Array(prob.vars.uy));
-  write(fw, "k_velocity",  Array(prob.vars.uz));
+  if !prob.flag.e
+    write(fw, "i_velocity",  Array(prob.vars.ux))
+    write(fw, "j_velocity",  Array(prob.vars.uy))
+    write(fw, "k_velocity",  Array(prob.vars.uz))
+  end
   if (prob.dye.dyeflag == true)
-      write(fw, "dye_density",  Array(prob.dye.ρ));
+    write(fw, "dye_density",  Array(prob.dye.ρ))
   end
   if (prob.flag.b == true)
-      write(fw, "i_mag_field", Array(prob.vars.bx));
-      write(fw, "j_mag_field", Array(prob.vars.by));
-      write(fw, "k_mag_field", Array(prob.vars.bz));
+    write(fw, "i_mag_field", Array(prob.vars.bx))
+    write(fw, "j_mag_field", Array(prob.vars.by))
+    write(fw, "k_mag_field", Array(prob.vars.bz))
+  end
+
+  if (prob.flag.c == true)
+    write(fw, "gas_density", Array(prob.vars.ρ))
   end
 
   #if (prob.flag.vp == true)
   #    write(fw, "chi", Array(prob.params.χ));
   #end
 
-  write(fw, "time", prob.clock.t);
-  close(fw) 
+  write(fw, "time", prob.clock.t)
+  close(fw)
+  return nothing
 end
