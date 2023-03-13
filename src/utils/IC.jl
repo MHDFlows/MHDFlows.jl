@@ -56,17 +56,27 @@ function SetUpProblemIC!(prob;  ρ = [],
       mul!(sol₀ , grid.rfftplan, vars.ρ);
     end
   end
+  if prob.dye.dyeflag
+    if ρ ==[]
+      warning("User declare the dye but no dye is set")
+    else
+      copyto!(prob.dye.ρ, ρ);
+      mul!(prob.dye.tmp.sol₀, grid.rfftplan, prob.dye.ρ);
+    end
+  end
 
   # Copy the data to both output and solution array
-  for (uᵢ,prob_uᵢ,uᵢind) in zip([ux,uy,uz],[vars.ux,vars.uy,vars.uz],
-                                [params.ux_ind,params.uy_ind,params.uz_ind])
-    if uᵢ != []
-      @views sol₀ =  sol[:, :, :, uᵢind];
-      copyto!(prob_uᵢ,uᵢ);
-      if prob.flag.c 
-        mul!(sol₀ , grid.rfftplan, @. vars.ρ*prob_uᵢ);
-      else
-        mul!(sol₀ , grid.rfftplan, prob_uᵢ);
+  if !prob.flag.e
+    for (uᵢ,prob_uᵢ,uᵢind) in zip([ux,uy,uz],[vars.ux,vars.uy,vars.uz],
+                                  [params.ux_ind,params.uy_ind,params.uz_ind])
+      if uᵢ != []
+        @views sol₀ =  sol[:, :, :, uᵢind];
+        copyto!(prob_uᵢ,uᵢ);
+        if prob.flag.c 
+          mul!(sol₀ , grid.rfftplan, @. vars.ρ*prob_uᵢ);
+        else
+          mul!(sol₀ , grid.rfftplan, prob_uᵢ);
+        end
       end
     end
   end
@@ -148,6 +158,61 @@ function DivFreeSpectraMap( grid;
   e1y[isnan.(e1y)] .= 0;
   e2x[isnan.(e2x)] .= 0;
   e2y[isnan.(e2y)] .= 0;
+    
+  # Work out the random conponement 
+  randN = grid.device == CPU() ? rand : CUDA.rand;
+  eⁱᶿ .= exp.(im.*randN(T,grid.nkr,grid.nl,grid.nm)*2π);
+  @. Fxh += Fk*eⁱᶿ*e2x;
+  @. Fyh += Fk*eⁱᶿ*e2y;
+  @. Fzh += Fk*eⁱᶿ*e2z;
+  
+  dealias!(Fxh, grid)
+  dealias!(Fyh, grid)
+  dealias!(Fzh, grid)
+
+  ldiv!(Fx, grid.rfftplan, deepcopy(Fxh));  
+  ldiv!(Fy, grid.rfftplan, deepcopy(Fyh));
+  ldiv!(Fz, grid.rfftplan, deepcopy(Fzh));
+
+  return Fx,Fy,Fz;
+  
+end
+
+function DivFreeSpectraMap2( Nx::Int, Ny::Int, Nz::Int;
+                            Lx = 2π,
+                            dev = CPU(), 
+                            k0 = 1.0, σ² = 1.0,  b = 1, T = Float64, k_peak = 0.0)
+  grid = ThreeDGrid(dev; nx = Nx, Lx = Lx, ny=Ny, nz=Nz, T = T,nthreads = 8);
+  return DivFreeSpectraMap( grid; k_peak = k_peak, P = P, k0 = k0, b = b);
+end
+
+function DivFreeSpectraMap2( grid;
+                             k_peak = 0.0, P = 1, k0 = 1.0, σ² = 1.0,  b = 1)
+    
+  T = eltype(grid);  
+  @devzeros typeof(grid.device) Complex{T} (grid.nkr,grid.nl,grid.nm) eⁱᶿ Fk Fxh Fyh Fzh 
+  @devzeros typeof(grid.device)         T  (grid.nx ,grid.ny,grid.nz) Fx Fy Fz
+  
+  kx,ky,kz  = grid.kr,grid.l,grid.m;  
+  Lx,Ly,Lz  = grid.Lx,grid.Ly,grid.Lz;
+  dx,dy,dz  = grid.dx,grid.dy,grid.dz;
+  k⁻¹  = @. √(grid.invKrsq);
+  k    = @. √(grid.Krsq);
+  k⊥   = @. √(kx^2 + ky^2);
+  dk⁻² = @. 1/(k+1)^2;
+  CUDA.@allowscalar Fk[1,1,1] = 0.0;
+  @. Fk[1,:,:] .= 0;
+  Fk  = @. √(exp(-(k.-k0)^2/σ²)/2/π)*k⁻¹;
+    
+  e1x = @.  ky/k⊥;
+  e1y = @. -kx/k⊥;
+  e2x = @. kx*kz/k⊥*k⁻¹;
+  e2y = @. ky*kz/k⊥*k⁻¹;
+  e2z = @. -k⊥*k⁻¹;
+  e1x[isnan.(e1x)] .= 0;
+  e1y[isnan.(e1y)] .= 0;
+  e2y[isnan.(e2y)] .= 0;
+  e2x[isnan.(e2x)] .= 0;
     
   # Work out the random conponement 
   randN = grid.device == CPU() ? rand : CUDA.rand;
