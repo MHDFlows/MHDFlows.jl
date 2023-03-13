@@ -38,17 +38,17 @@ function Static_Dashbroad(prob, step_over_check_loop_number::Number);
 
   if step_over_check_loop_number == 0
     if (prob.flag.b == true)
-      if prob.flag.e == true
+      if prob.flag.e
+        ME  = ProbDiagnostic(prob);
+        ME_ = string(ME);
+        for i = 1:8-length(string(ME_));ME_= " "*ME_;end
+        println("           n = $nn, t = $tt, ME = $ME_")
+      else
         KE, ME  = ProbDiagnostic(prob);
         KE_,ME_ = string(KE),string(ME);
         for i = 1:8-length(string(KE_));KE_= " "*KE_;end
         for i = 1:8-length(string(ME_));ME_= " "*ME_;end
         println("            n = $nn, t = $tt, KE = $KE_, ME = $(ME)");
-      else
-        ME  = ProbDiagnostic(prob);
-        ME_ = string(ME);
-        for i = 1:8-length(string(ME_));ME_= " "*ME_;end
-        println("           n = $nn, t = $tt, ME = $ME_")
       end
     else
       KE  = ProbDiagnostic(prob);

@@ -167,8 +167,6 @@ function EMHDcalcN!(N, sol, t, clock, vars, params, grid)
   
   MHDSolver.EMHDcalcN_advection!(N, sol, t, clock, vars, params, grid)
   
-  addforcing!(N, sol, t, clock, vars, params, grid)
-  
   return nothing
 end
 
