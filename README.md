@@ -1,4 +1,11 @@
 # MHDFlows.jl
+<p align="left">
+    <a href="https://zenodo.org/badge/latestdoi/474861493">
+        <img alt="doi" src="https://zenodo.org/badge/474861493.svg" alt="DOI">
+    </a>
+</p>
+
+
 ![Julia flow](img/TG_Instability.gif)
 
 Three Dimensional Magnetohydrodynamic(MHD) pseudospectral solvers written in Julia language with <a href="http://github.com/FourierFlows/FourierFlows.jl">FourierFlows.jl</a>. This solver support the following features:
@@ -77,4 +84,6 @@ Few examples were set up to illustrate the workflow of using this package. [Chec
 MHDFlows is currently developed by [Ka Wai HO@UW-Madison Astronomy](https://scholar.google.com/citations?user=h2j8wbYAAAAJ&hl=en).
 
 ## Citing
-A paper can be cited elsewhere in the future :slightly_smiling_face:. Feel free to cite the GitHub page right now. 
+This software is citable via [zenodo](https://zenodo.org). Please cite as:
+
+>Ka Wai HO. (2022). MHDFlows.jl (v.0.2.1b). Zenodo. [https://doi.org/10.5281/zenodo.8242702](https://doi.org/10.5281/zenodo.8242702)
