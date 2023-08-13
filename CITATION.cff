@@ -1,0 +1,9 @@
+MHDFlows-version: 0.2.1
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: HO
+    given-names: Ka Wai HO
+    orcid: https://orcid.org/0000-0003-3328-6300
+title: MHDFlows/MHDFlows.jl: v.0.2.1b 
+version: v.0.2.1b
+date-released: 2023-08-13
